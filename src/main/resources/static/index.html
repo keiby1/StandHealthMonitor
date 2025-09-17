@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мониторинг доступности стенда</title>
+  <style>
+    :root { --day-size: 44px; --day-font: 24px; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 16px; background:#ffffff; color:#0f172a; }
+    h1 { margin: 0 0 12px 0; font-size: 20px; }
+    .wrap { display: grid; gap: 16px; }
+    .toolbar { display:flex; align-items:center; gap:8px; flex-wrap: wrap; }
+    .legend { display:flex; align-items:center; gap:8px; flex-wrap: wrap; }
+    .swatch { width:16px; height:16px; border-radius:3px; border:1px solid rgba(0,0,0,.1); }
+    .calendar { display:grid; grid-template-columns: repeat(7, var(--day-size)); gap:6px; }
+    .weekday { width: var(--day-size); text-align:center; font-size:12px; color:#334155; padding:4px 0; }
+    .day { width: var(--day-size); aspect-ratio: 1/1; display:flex; align-items:center; justify-content:center; font-size: var(--day-font); border-radius:6px; cursor:pointer; border:1px solid rgba(0,0,0,.08); background:#f8fafc; color:#0f172a; transition: transform .05s ease, box-shadow .2s ease; }
+    .day:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,.08); }
+    .day[aria-selected="true"] { outline:2px solid #3b82f6; outline-offset:2px; }
+    .day.muted { color:#94a3b8; background:#f1f5f9; cursor:default; }
+    .day.no-data { background:#e5e7eb; color:#0f172a; }
+    .meta { display:flex; align-items:center; gap:12px; color:#334155; font-size:12px; }
+    .controls { display:flex; gap:8px; align-items:center; }
+    .controls button, .controls select { font-size:12px; padding:6px 8px; border-radius:6px; border:1px solid rgba(0,0,0,.12); background:#ffffff; color:#0f172a; cursor:pointer; }
+    .controls button:hover { background:#f8fafc; }
+    .details { padding:12px; border:1px solid rgba(0,0,0,.12); border-radius:8px; background:#ffffff; }
+    .details h2 { margin:0 0 8px 0; font-size:16px; }
+    .systems { display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; }
+    .card { padding:10px; border-radius:8px; background:#f8fafc; border:1px solid rgba(0,0,0,.08); display:flex; flex-direction:column; gap:6px; }
+    .badge { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#0f172a; }
+    .muted { color:#64748b; font-size:12px; }
+    .hidden { display:none; }
+    .notice { font-size:12px; color:#64748b; }
+    @media (max-width: 800px) {
+      .systems { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 480px) {
+      .systems { grid-template-columns: 1fr; }
+    }
+  </style>
+  <link rel="icon" href="data:," />
+  <meta name="color-scheme" content="dark light">
+  <meta name="description" content="Тепловая карта доступности стенда по дням и системам">
+</head>
+<body>
+  <div class="wrap">
+    <h1>Доступность стенда — теплокарта</h1>
+    <div class="toolbar">
+      <div class="controls">
+        <button id="prevMonth" aria-label="Предыдущий месяц">◀</button>
+        <select id="monthSelect" aria-label="Месяц"></select>
+        <select id="yearSelect" aria-label="Год"></select>
+        <button id="nextMonth" aria-label="Следующий месяц">▶</button>
+      </div>
+      <div class="meta">
+        <span id="range"></span>
+        <span class="notice">Кликните по дню для деталей по системам</span>
+      </div>
+      
+    </div>
+    <div class="legend" id="legend"></div>
+    <div class="calendar" id="weekdayHeader" aria-hidden="true"></div>
+    <div class="calendar" id="calendar" role="grid" aria-label="Календарь доступности"></div>
+    <div class="details hidden" id="details">
+      <h2 id="detailsTitle">Детали за день</h2>
+      <div class="systems" id="systems"></div>
+    </div>
+
+    
+  </div>
+
+  <script>
+    const DATA_URL = '/data.json';
+    const STATUSES_URL = '/statuses.json';
+    const CRITERIA_URL = '/criteria.json';
+
+    const calendarEl = document.getElementById('calendar');
+    const weekdayHeaderEl = document.getElementById('weekdayHeader');
+    const legendEl = document.getElementById('legend');
+    const detailsEl = document.getElementById('details');
+    const detailsTitleEl = document.getElementById('detailsTitle');
+    const systemsEl = document.getElementById('systems');
+    const rangeEl = document.getElementById('range');
+    const prevMonthBtn = document.getElementById('prevMonth');
+    const nextMonthBtn = document.getElementById('nextMonth');
+    const monthSelect = document.getElementById('monthSelect');
+    const yearSelect = document.getElementById('yearSelect');
+    
+
+    let successStatuses = new Set(['200']);
+    let criteria = [];
+    let dayToRecord = new Map();
+    let selectedCell = null;
+    let allDates = []; // массив Date из data.json
+    let currentYear;
+    let currentMonth; // 0..11
+    
+
+    function parseRuDate(d) {
+      const [dd, mm, yyyy] = d.split('.').map(Number);
+      return new Date(yyyy, mm - 1, dd);
+    }
+
+    function formatRuDate(date) {
+      const dd = String(date.getDate()).padStart(2, '0');
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const yyyy = date.getFullYear();
+      return `${dd}.${mm}.${yyyy}`;
+    }
+
+    function toDataKey(date) { return formatRuDate(date); }
+
+    function getDaysInMonth(year, monthIndex) {
+      return new Date(year, monthIndex + 1, 0).getDate();
+    }
+
+    function weekdayRuMondayFirst(jsDay) {
+      // js: 0=Sun..6=Sat -> 0=Mon..6=Sun
+      return (jsDay + 6) % 7;
+    }
+
+    function computeFailedCount(dayItem) {
+      if (!dayItem || !Array.isArray(dayItem.stat)) return 0;
+      let failed = 0;
+      for (const item of dayItem.stat) {
+        if (!successStatuses.has(String(item.status))) failed++;
+      }
+      return failed;
+    }
+
+    function colorForFailed(count) {
+      let candidate = null;
+      for (const c of criteria) {
+        if (typeof c.count === 'number' && c.count <= count) {
+          if (!candidate || c.count > candidate.count) candidate = c;
+        }
+      }
+      if (!candidate && criteria.length) {
+        candidate = criteria.reduce((a,b)=> a.count < b.count ? a : b);
+      }
+      return candidate ? candidate.color : '#1a1f2b';
+    }
+
+    function buildLegend() {
+      legendEl.innerHTML = '';
+      const sorted = [...criteria].sort((a,b)=>a.count-b.count);
+      for (const c of sorted) {
+        const wrap = document.createElement('div');
+        wrap.style.display = 'inline-flex';
+        wrap.style.alignItems = 'center';
+        wrap.style.gap = '6px';
+        const sw = document.createElement('span');
+        sw.className = 'swatch';
+        sw.style.background = c.color;
+        const label = document.createElement('span');
+        label.className = 'muted';
+        label.textContent = `ошибок: ${c.count}`;
+        wrap.appendChild(sw);
+        wrap.appendChild(label);
+        legendEl.appendChild(wrap);
+      }
+      // добавим серый для отсутствующих данных
+      const wrap = document.createElement('div');
+      wrap.style.display = 'inline-flex';
+      wrap.style.alignItems = 'center';
+      wrap.style.gap = '6px';
+      const sw = document.createElement('span');
+      sw.className = 'swatch';
+      sw.style.background = '#e5e7eb';
+      const label = document.createElement('span');
+      label.className = 'muted';
+      label.textContent = 'нет данных';
+      wrap.appendChild(sw);
+      wrap.appendChild(label);
+      legendEl.appendChild(wrap);
+    }
+
+    function clearSelection() {
+      if (selectedCell) {
+        selectedCell.setAttribute('aria-selected', 'false');
+      }
+      selectedCell = null;
+      detailsEl.classList.add('hidden');
+    }
+
+    function onDayClick(dateStr, cell) {
+      if (selectedCell === cell) {
+        clearSelection();
+        return;
+      }
+      if (selectedCell) selectedCell.setAttribute('aria-selected', 'false');
+      selectedCell = cell;
+      selectedCell.setAttribute('aria-selected', 'true');
+
+      const rec = dayToRecord.get(dateStr);
+      detailsTitleEl.textContent = `Детали за ${dateStr}`;
+      systemsEl.innerHTML = '';
+      if (!rec) {
+        detailsEl.classList.remove('hidden');
+        systemsEl.innerHTML = '<span class="muted">Данные отсутствуют</span>';
+        return;
+      }
+
+      for (const s of rec.stat) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        const top = document.createElement('div');
+        top.className = 'badge';
+        const dot = document.createElement('span');
+        dot.className = 'swatch';
+        const ok = successStatuses.has(String(s.status));
+        dot.style.background = ok ? '#22c55e' : '#ef4444';
+        const name = document.createElement('span');
+        name.textContent = s.system;
+        top.appendChild(dot);
+        top.appendChild(name);
+        const status = document.createElement('span');
+        status.className = 'muted';
+        status.textContent = `статус: ${s.status}`;
+        card.appendChild(top);
+        card.appendChild(status);
+        systemsEl.appendChild(card);
+      }
+      detailsEl.classList.remove('hidden');
+    }
+
+    function buildWeekdayHeader() {
+      weekdayHeaderEl.innerHTML = '';
+      const names = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+      for (const n of names) {
+        const el = document.createElement('div');
+        el.className = 'weekday';
+        el.textContent = n;
+        weekdayHeaderEl.appendChild(el);
+      }
+    }
+
+    function buildCalendarMonth(year, monthIndex) {
+      calendarEl.innerHTML = '';
+      const firstOfMonth = new Date(year, monthIndex, 1);
+      const lastDay = getDaysInMonth(year, monthIndex);
+      const startOffset = weekdayRuMondayFirst(firstOfMonth.getDay()); // 0..6
+
+      rangeEl.textContent = `${String(monthIndex+1).padStart(2,'0')}.${year}`;
+
+      // Заполняем пустые клетки до первого дня месяца (из предыдущего месяца)
+      for (let i = 0; i < startOffset; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'day muted';
+        cell.setAttribute('aria-selected', 'false');
+        calendarEl.appendChild(cell);
+      }
+
+      // Дни текущего месяца
+      for (let day = 1; day <= lastDay; day++) {
+        const date = new Date(year, monthIndex, day);
+        const key = toDataKey(date);
+        const rec = dayToRecord.get(key);
+        const cell = document.createElement('button');
+        cell.type = 'button';
+        cell.className = 'day';
+        let bg = '#e5e7eb'; // по умолчанию серый — нет данных
+        let title = `${key}: нет данных`;
+        if (rec) {
+          const failed = computeFailedCount(rec);
+          bg = colorForFailed(failed);
+          title = `${key}: ошибок ${failed}`;
+        } else {
+          cell.classList.add('no-data');
+        }
+        cell.style.background = bg;
+        cell.title = title;
+        cell.setAttribute('aria-selected', 'false');
+        cell.setAttribute('role', 'gridcell');
+        cell.textContent = String(day);
+        cell.addEventListener('click', ()=> onDayClick(key, cell));
+        calendarEl.appendChild(cell);
+      }
+
+      // добиваем сетку до конца недели (последняя неделя)
+      const cellsInGrid = calendarEl.children.length;
+      const remainder = cellsInGrid % 7;
+      if (remainder !== 0) {
+        const tail = 7 - remainder;
+        for (let i = 0; i < tail; i++) {
+          const cell = document.createElement('div');
+          cell.className = 'day muted';
+          cell.setAttribute('aria-selected', 'false');
+          calendarEl.appendChild(cell);
+        }
+      }
+    }
+
+    async function loadAll() {
+      const [dataResp, statusesResp, criteriaResp] = await Promise.all([
+        fetch(DATA_URL),
+        fetch(STATUSES_URL),
+        fetch(CRITERIA_URL)
+      ]);
+      if (!dataResp.ok) throw new Error('Не удалось загрузить data.json');
+      if (!statusesResp.ok) throw new Error('Не удалось загрузить statuses.json');
+      if (!criteriaResp.ok) throw new Error('Не удалось загрузить criteria.json');
+
+      const dataJson = await dataResp.json();
+      const statusesJson = await statusesResp.json();
+      const criteriaJson = await criteriaResp.json();
+
+      const statuses = Array.isArray(statusesJson.statuses) ? statusesJson.statuses : [];
+      successStatuses = new Set(statuses.map(String));
+      criteria = Array.isArray(criteriaJson.criterias) ? criteriaJson.criterias : [];
+
+      dayToRecord.clear();
+      const days = Array.isArray(dataJson.data) ? dataJson.data : [];
+      allDates = [];
+      for (const d of days) {
+        dayToRecord.set(d.date, d);
+        allDates.push(parseRuDate(d.date));
+      }
+
+      setupControls();
+      buildLegend();
+      buildWeekdayHeader();
+      renderCurrentMonth();
+
+      
+    }
+
+    // Инициализация после загрузки DOM
+    window.addEventListener('DOMContentLoaded', () => {
+      loadAll().catch(err => {
+        console.error(err);
+        calendarEl.innerHTML = '<span class="muted">Ошибка загрузки данных</span>';
+      });
+    });
+
+    function setupControls() {
+      const now = new Date();
+      const initial = allDates.length ? allDates[0] : now;
+      currentYear = initial.getFullYear();
+      currentMonth = initial.getMonth();
+
+      // Формируем список лет из данных (мин..макс), либо +-1 от текущего
+      let years = [];
+      if (allDates.length) {
+        const minY = Math.min(...allDates.map(d=>d.getFullYear()));
+        const maxY = Math.max(...allDates.map(d=>d.getFullYear()));
+        for (let y=minY; y<=maxY; y++) years.push(y);
+      } else {
+        years = [now.getFullYear()-1, now.getFullYear(), now.getFullYear()+1];
+      }
+      yearSelect.innerHTML = '';
+      for (const y of years) {
+        const opt = document.createElement('option');
+        opt.value = String(y);
+        opt.textContent = String(y);
+        if (y === currentYear) opt.selected = true;
+        yearSelect.appendChild(opt);
+      }
+
+      const monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+      monthSelect.innerHTML = '';
+      for (let i=0;i<12;i++) {
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        opt.textContent = monthNames[i];
+        if (i === currentMonth) opt.selected = true;
+        monthSelect.appendChild(opt);
+      }
+
+      prevMonthBtn.onclick = ()=> changeMonth(-1);
+      nextMonthBtn.onclick = ()=> changeMonth(1);
+      monthSelect.onchange = ()=> { currentMonth = Number(monthSelect.value); renderCurrentMonth(); };
+      yearSelect.onchange = ()=> { currentYear = Number(yearSelect.value); renderCurrentMonth(); };
+    }
+
+    function changeMonth(delta) {
+      let m = currentMonth + delta;
+      let y = currentYear;
+      if (m < 0) { m = 11; y--; }
+      if (m > 11) { m = 0; y++; }
+      currentMonth = m; currentYear = y;
+      monthSelect.value = String(currentMonth);
+      if (![...yearSelect.options].some(o=> Number(o.value) === currentYear)) {
+        const opt = document.createElement('option');
+        opt.value = String(currentYear);
+        opt.textContent = String(currentYear);
+        yearSelect.appendChild(opt);
+      }
+      yearSelect.value = String(currentYear);
+      renderCurrentMonth();
+    }
+
+    function renderCurrentMonth() {
+      clearSelection();
+      buildCalendarMonth(currentYear, currentMonth);
+    }
+
+    
+  </script>
+</body>
+</html>
+
+
