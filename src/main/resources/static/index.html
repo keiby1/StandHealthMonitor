@@ -27,7 +27,7 @@
     .details h2 { margin:0 0 8px 0; font-size:16px; }
     .systems { display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; }
     .card { padding:10px; border-radius:8px; background:#f8fafc; border:1px solid rgba(0,0,0,.08); display:flex; flex-direction:column; gap:6px; }
-    .badge { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#0f172a; }
+    .badge { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#0f172a; width:100%; }
     .muted { color:#64748b; font-size:12px; }
     .hidden { display:none; }
     .notice { font-size:12px; color:#64748b; }
@@ -70,9 +70,8 @@
   </div>
 
   <script>
-    const DATA_URL = '/data.json';
-    const STATUSES_URL = '/statuses.json';
-    const CRITERIA_URL = '/criteria.json';
+    const DATA_URL = '/api/data';
+    const CRITERIA_URL = '/api/criteria';
 
     const calendarEl = document.getElementById('calendar');
     const weekdayHeaderEl = document.getElementById('weekdayHeader');
@@ -119,26 +118,85 @@
       return (jsDay + 6) % 7;
     }
 
+    /**
+     * Подсчитывает количество неуспешных статусов за день.
+     * Правила:
+     * - Статус "200" считается успешным (из таблицы SystemStatus)
+     * - Все остальные статусы считаются неуспешными
+     * - Учитывается поле count из таблицы SystemStatus
+     * - Суммируются count всех неуспешных статусов
+     */
     function computeFailedCount(dayItem) {
       if (!dayItem || !Array.isArray(dayItem.stat)) return 0;
       let failed = 0;
       for (const item of dayItem.stat) {
-        if (!successStatuses.has(String(item.status))) failed++;
+        // Проверяем, является ли статус успешным (200 = успешный)
+        const statusStr = String(item.status);
+        const isSuccess = successStatuses.has(statusStr);
+        
+        if (!isSuccess) {
+          // Учитываем count из таблицы SystemStatus
+          const itemCount = (item.count && typeof item.count === 'number') ? item.count : 1;
+          failed += itemCount;
+        }
       }
       return failed;
     }
 
+    /**
+     * Определяет цвет для дня на основе количества ошибок и критериев из таблицы Criteria.
+     * Правила:
+     * - Если ошибок 0, используется критерий с count=0 (зеленый)
+     * - Если ошибок > 0, ищется максимальный критерий, где count <= количество ошибок
+     * - Если такого критерия нет, используется минимальный критерий для ошибок (count > 0)
+     */
     function colorForFailed(count) {
+      // Отладка
+      console.log(`colorForFailed: count=${count}, criteria.length=${criteria?.length || 0}`);
+      
+      // Если нет критериев, возвращаем цвет по умолчанию
+      if (!criteria || criteria.length === 0) {
+        console.warn('Нет критериев!');
+        return count === 0 ? '#86efac' : '#ef4444';
+      }
+      
+      // Если ошибок 0, используем критерий с count=0
+      if (count === 0) {
+        const zeroCriteria = criteria.find(c => c.count === 0);
+        if (zeroCriteria) {
+          console.log(`Найден критерий для 0 ошибок: count=${zeroCriteria.count}, color=${zeroCriteria.color}`);
+          return zeroCriteria.color;
+        }
+        return '#86efac'; // зеленый по умолчанию
+      }
+      
+      // Ищем максимальный критерий, где count <= количество ошибок
       let candidate = null;
       for (const c of criteria) {
-        if (typeof c.count === 'number' && c.count <= count) {
-          if (!candidate || c.count > candidate.count) candidate = c;
+        if (typeof c.count === 'number' && c.count > 0 && c.count <= count) {
+          if (!candidate || c.count > candidate.count) {
+            candidate = c;
+          }
         }
       }
-      if (!candidate && criteria.length) {
-        candidate = criteria.reduce((a,b)=> a.count < b.count ? a : b);
+      
+      if (candidate) {
+        console.log(`Найден подходящий критерий: ошибок=${count}, критерий count=${candidate.count}, color=${candidate.color}`);
+        return candidate.color;
       }
-      return candidate ? candidate.color : '#1a1f2b';
+      
+      // Если не нашли подходящий критерий (ошибок меньше минимального критерия),
+      // используем минимальный критерий для ошибок (count > 0)
+      const errorCriteria = criteria.filter(c => c.count > 0);
+      if (errorCriteria.length > 0) {
+        const minErrorCriteria = errorCriteria.reduce((a, b) => a.count < b.count ? a : b);
+        console.log(`Используется минимальный критерий для ошибок: ошибок=${count}, критерий count=${minErrorCriteria.count}, color=${minErrorCriteria.color}`);
+        return minErrorCriteria.color;
+      }
+      
+      // Fallback
+      console.warn(`Не удалось найти подходящий критерий для ${count} ошибок`);
+      return '#ef4444';
     }
 
     function buildLegend() {
@@ -211,12 +269,18 @@
         const ok = successStatuses.has(String(s.status));
         dot.style.background = ok ? '#22c55e' : '#ef4444';
         const name = document.createElement('span');
-        name.textContent = s.system;
+        name.textContent = s.system || 'Неизвестно';
+        const count = document.createElement('span');
+        count.style.marginLeft = 'auto';
+        count.style.fontWeight = '600';
+        const countValue = s.count || 1;
+        count.textContent = countValue > 1 ? `×${countValue}` : '';
         top.appendChild(dot);
         top.appendChild(name);
+        if (countValue > 1) top.appendChild(count);
         const status = document.createElement('span');
         status.className = 'muted';
-        status.textContent = `статус: ${s.status}`;
+        status.textContent = `статус: ${s.status || 'неизвестно'}`;
         card.appendChild(top);
         card.appendChild(status);
         systemsEl.appendChild(card);
@@ -264,7 +328,14 @@
         if (rec) {
           const failed = computeFailedCount(rec);
           bg = colorForFailed(failed);
-          title = `${key}: ошибок ${failed}`;
+          title = failed === 0 
+            ? `${key}: все успешно (0 ошибок)` 
+            : `${key}: ошибок ${failed}`;
+          
+          // Отладка для первых нескольких дней
+          if (day <= 3) {
+            console.log(`День ${key}: ошибок=${failed}, цвет=${bg}, данные:`, rec.stat);
+          }
         } else {
           cell.classList.add('no-data');
         }
@@ -292,44 +363,55 @@
     }
 
     async function loadAll() {
-      const [dataResp, statusesResp, criteriaResp] = await Promise.all([
-        fetch(DATA_URL),
-        fetch(STATUSES_URL),
-        fetch(CRITERIA_URL)
-      ]);
-      if (!dataResp.ok) throw new Error('Не удалось загрузить data.json');
-      if (!statusesResp.ok) throw new Error('Не удалось загрузить statuses.json');
-      if (!criteriaResp.ok) throw new Error('Не удалось загрузить criteria.json');
+      try {
+        const [dataResp, criteriaResp] = await Promise.all([
+          fetch(DATA_URL),
+          fetch(CRITERIA_URL)
+        ]);
+        
+        if (!dataResp.ok) {
+          throw new Error(`Ошибка загрузки данных: ${dataResp.status} ${dataResp.statusText}`);
+        }
+        if (!criteriaResp.ok) {
+          throw new Error(`Ошибка загрузки критериев: ${criteriaResp.status} ${criteriaResp.statusText}`);
+        }
 
-      const dataJson = await dataResp.json();
-      const statusesJson = await statusesResp.json();
-      const criteriaJson = await criteriaResp.json();
+        const dataJson = await dataResp.json();
+        const criteriaJson = await criteriaResp.json();
 
-      const statuses = Array.isArray(statusesJson.statuses) ? statusesJson.statuses : [];
-      successStatuses = new Set(statuses.map(String));
-      criteria = Array.isArray(criteriaJson.criterias) ? criteriaJson.criterias : [];
+        // Статус "200" считается успешным по умолчанию
+        successStatuses = new Set(['200']);
+        criteria = Array.isArray(criteriaJson.criterias) ? criteriaJson.criterias : [];
+        
+        // Отладка: выводим загруженные критерии
+        console.log('Загружены критерии:', criteria);
+        console.log('Успешные статусы:', Array.from(successStatuses));
 
-      dayToRecord.clear();
-      const days = Array.isArray(dataJson.data) ? dataJson.data : [];
-      allDates = [];
-      for (const d of days) {
-        dayToRecord.set(d.date, d);
-        allDates.push(parseRuDate(d.date));
+        dayToRecord.clear();
+        const days = Array.isArray(dataJson.data) ? dataJson.data : [];
+        allDates = [];
+        for (const d of days) {
+          if (d && d.date) {
+            dayToRecord.set(d.date, d);
+            allDates.push(parseRuDate(d.date));
+          }
+        }
+
+        setupControls();
+        buildLegend();
+        buildWeekdayHeader();
+        renderCurrentMonth();
+      } catch (err) {
+        console.error('Ошибка загрузки данных:', err);
+        calendarEl.innerHTML = `<span class="muted">Ошибка загрузки данных: ${err.message}</span>`;
       }
-
-      setupControls();
-      buildLegend();
-      buildWeekdayHeader();
-      renderCurrentMonth();
-
-      
     }
 
     // Инициализация после загрузки DOM
     window.addEventListener('DOMContentLoaded', () => {
       loadAll().catch(err => {
-        console.error(err);
-        calendarEl.innerHTML = '<span class="muted">Ошибка загрузки данных</span>';
+        console.error('Критическая ошибка:', err);
+        calendarEl.innerHTML = `<span class="muted">Ошибка загрузки данных: ${err.message || 'Неизвестная ошибка'}</span>`;
       });
     });
 
