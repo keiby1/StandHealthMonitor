@@ -284,3 +284,4 @@ keytool -importkeystore -srckeystore путь/к/хранилищу.jks -srcstor
 - `HTTPS_SETUP.md` - общая инструкция по настройке HTTPS
 - `.gitignore` - убедитесь, что JKS файлы не коммитятся в git
 
+

@@ -8,6 +8,8 @@
     :root { --day-size: 44px; --day-font: 24px; }
     body { font-family: Arial, sans-serif; margin: 0; padding: 16px; background:#ffffff; color:#0f172a; }
     h1 { margin: 0 0 12px 0; font-size: 20px; }
+    .main-container { display: flex; gap: 16px; align-items: flex-start; }
+    .main-content { flex: 1; min-width: 0; }
     .wrap { display: grid; gap: 16px; }
     .toolbar { display:flex; align-items:center; gap:8px; flex-wrap: wrap; }
     .legend { display:flex; align-items:center; gap:8px; flex-wrap: wrap; }
@@ -31,6 +33,25 @@
     .muted { color:#64748b; font-size:12px; }
     .hidden { display:none; }
     .notice { font-size:12px; color:#64748b; }
+    
+    /* Статистика */
+    .stats-toggle-btn { font-size:12px; padding:6px 12px; border-radius:6px; border:1px solid rgba(0,0,0,.12); background:#3b82f6; color:#ffffff; cursor:pointer; }
+    .stats-toggle-btn:hover { background:#2563eb; }
+    .stats-sidebar { width: 320px; padding: 16px; border:1px solid rgba(0,0,0,.12); border-radius:8px; background:#ffffff; position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
+    .stats-sidebar.hidden { display: none; }
+    .stats-sidebar h2 { margin: 0 0 16px 0; font-size: 16px; }
+    .stats-list { display: flex; flex-direction: column; gap: 16px; }
+    .stat-item { display: flex; flex-direction: column; gap: 8px; }
+    .stat-item-title { font-size: 14px; font-weight: 600; color: #0f172a; }
+    .stat-chart { width: 100%; height: 120px; border: 1px solid rgba(0,0,0,.08); border-radius: 6px; }
+    .stat-legend { display: flex; gap: 12px; font-size: 12px; }
+    .stat-legend-item { display: flex; align-items: center; gap: 6px; }
+    .stat-legend-color { width: 12px; height: 12px; border-radius: 3px; }
+    
+    @media (max-width: 1200px) {
+      .main-container { flex-direction: column; }
+      .stats-sidebar { width: 100%; position: static; max-height: none; }
+    }
     @media (max-width: 800px) {
       .systems { grid-template-columns: repeat(2, 1fr); }
     }
@@ -43,30 +64,37 @@
   <meta name="description" content="Тепловая карта доступности стенда по дням и системам">
 </head>
 <body>
-  <div class="wrap">
-    <h1>Доступность стенда — теплокарта</h1>
-    <div class="toolbar">
-      <div class="controls">
-        <button id="prevMonth" aria-label="Предыдущий месяц">◀</button>
-        <select id="monthSelect" aria-label="Месяц"></select>
-        <select id="yearSelect" aria-label="Год"></select>
-        <button id="nextMonth" aria-label="Следующий месяц">▶</button>
+  <div class="main-container">
+    <div class="main-content">
+      <div class="wrap">
+        <h1>Доступность стенда — теплокарта</h1>
+        <div class="toolbar">
+          <div class="controls">
+            <button id="prevMonth" aria-label="Предыдущий месяц">◀</button>
+            <select id="monthSelect" aria-label="Месяц"></select>
+            <select id="yearSelect" aria-label="Год"></select>
+            <button id="nextMonth" aria-label="Следующий месяц">▶</button>
+            <button id="statsToggleBtn" class="stats-toggle-btn" aria-label="Показать/скрыть статистику">📊 Статистика</button>
+          </div>
+          <div class="meta">
+            <span id="range"></span>
+            <span class="notice">Кликните по дню для деталей по системам</span>
+          </div>
+          
+        </div>
+        <div class="legend" id="legend"></div>
+        <div class="calendar" id="weekdayHeader" aria-hidden="true"></div>
+        <div class="calendar" id="calendar" role="grid" aria-label="Календарь доступности"></div>
+        <div class="details hidden" id="details">
+          <h2 id="detailsTitle">Детали за день</h2>
+          <div class="systems" id="systems"></div>
+        </div>
       </div>
-      <div class="meta">
-        <span id="range"></span>
-        <span class="notice">Кликните по дню для деталей по системам</span>
-      </div>
-      
     </div>
-    <div class="legend" id="legend"></div>
-    <div class="calendar" id="weekdayHeader" aria-hidden="true"></div>
-    <div class="calendar" id="calendar" role="grid" aria-label="Календарь доступности"></div>
-    <div class="details hidden" id="details">
-      <h2 id="detailsTitle">Детали за день</h2>
-      <div class="systems" id="systems"></div>
+    <div class="stats-sidebar hidden" id="statsSidebar">
+      <h2>Статистика за месяц</h2>
+      <div class="stats-list" id="statsList"></div>
     </div>
-
-    
   </div>
 
   <script>
@@ -84,6 +112,9 @@
     const nextMonthBtn = document.getElementById('nextMonth');
     const monthSelect = document.getElementById('monthSelect');
     const yearSelect = document.getElementById('yearSelect');
+    const statsToggleBtn = document.getElementById('statsToggleBtn');
+    const statsSidebar = document.getElementById('statsSidebar');
+    const statsList = document.getElementById('statsList');
     
 
     let successStatuses = new Set(['200']);
@@ -93,6 +124,7 @@
     let allDates = []; // массив Date из data.json
     let currentYear;
     let currentMonth; // 0..11
+    let statsVisible = false;
     
 
     function parseRuDate(d) {
@@ -451,8 +483,14 @@
 
       prevMonthBtn.onclick = ()=> changeMonth(-1);
       nextMonthBtn.onclick = ()=> changeMonth(1);
-      monthSelect.onchange = ()=> { currentMonth = Number(monthSelect.value); renderCurrentMonth(); };
-      yearSelect.onchange = ()=> { currentYear = Number(yearSelect.value); renderCurrentMonth(); };
+      monthSelect.onchange = ()=> { 
+        currentMonth = Number(monthSelect.value); 
+        renderCurrentMonth(); 
+      };
+      yearSelect.onchange = ()=> { 
+        currentYear = Number(yearSelect.value); 
+        renderCurrentMonth(); 
+      };
     }
 
     function changeMonth(delta) {
@@ -475,8 +513,175 @@
     function renderCurrentMonth() {
       clearSelection();
       buildCalendarMonth(currentYear, currentMonth);
+      if (statsVisible) {
+        updateStats();
+      }
     }
 
+    // Статистика
+    function toggleStats() {
+      statsVisible = !statsVisible;
+      if (statsVisible) {
+        statsSidebar.classList.remove('hidden');
+        statsToggleBtn.textContent = '📊 Скрыть статистику';
+        updateStats();
+      } else {
+        statsSidebar.classList.add('hidden');
+        statsToggleBtn.textContent = '📊 Статистика';
+      }
+    }
+
+    function calculateMonthStats(year, monthIndex) {
+      const stats = new Map(); // systemName -> { success: number, failed: number }
+      
+      // Проходим по всем дням выбранного месяца
+      const daysInMonth = getDaysInMonth(year, monthIndex);
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, monthIndex, day);
+        const key = toDataKey(date);
+        const rec = dayToRecord.get(key);
+        
+        if (!rec || !Array.isArray(rec.stat)) continue;
+        
+        for (const stat of rec.stat) {
+          const systemName = stat.system || 'Неизвестно';
+          const statusStr = String(stat.status);
+          const isSuccess = successStatuses.has(statusStr);
+          const count = (stat.count && typeof stat.count === 'number') ? stat.count : 1;
+          
+          if (!stats.has(systemName)) {
+            stats.set(systemName, { success: 0, failed: 0 });
+          }
+          
+          const systemStats = stats.get(systemName);
+          if (isSuccess) {
+            systemStats.success += count;
+          } else {
+            systemStats.failed += count;
+          }
+        }
+      }
+      
+      return stats;
+    }
+
+    function drawChart(canvas, success, failed) {
+      const ctx = canvas.getContext('2d');
+      const width = canvas.width;
+      const height = canvas.height;
+      const total = success + failed;
+      
+      if (total === 0) {
+        ctx.fillStyle = '#e5e7eb';
+        ctx.fillRect(0, 0, width, height);
+        ctx.fillStyle = '#64748b';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Нет данных', width / 2, height / 2);
+        return;
+      }
+      
+      // Очищаем canvas
+      ctx.clearRect(0, 0, width, height);
+      
+      // Вычисляем пропорции
+      const successRatio = success / total;
+      const failedRatio = failed / total;
+      
+      // Рисуем зеленую часть (успешные) снизу
+      if (success > 0) {
+        ctx.fillStyle = '#22c55e';
+        const successHeight = height * successRatio;
+        ctx.fillRect(0, height - successHeight, width, successHeight);
+      }
+      
+      // Рисуем красную часть (неуспешные) сверху
+      if (failed > 0) {
+        ctx.fillStyle = '#ef4444';
+        const failedHeight = height * failedRatio;
+        ctx.fillRect(0, 0, width, failedHeight);
+      }
+      
+      // Добавляем границу
+      ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(0, 0, width, height);
+      
+      // Добавляем текст с числами
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 11px Arial';
+      ctx.textAlign = 'center';
+      
+      if (success > 0) {
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(String(success), width / 2, height - 4);
+      }
+      
+      if (failed > 0) {
+        ctx.textBaseline = 'top';
+        ctx.fillText(String(failed), width / 2, 16);
+      }
+    }
+
+    function updateStats() {
+      const stats = calculateMonthStats(currentYear, currentMonth);
+      statsList.innerHTML = '';
+      
+      if (stats.size === 0) {
+        statsList.innerHTML = '<div class="muted">Нет данных за выбранный месяц</div>';
+        return;
+      }
+      
+      // Сортируем системы по алфавиту
+      const sortedSystems = Array.from(stats.entries()).sort((a, b) => 
+        a[0].localeCompare(b[0], 'ru')
+      );
+      
+      for (const [systemName, systemStats] of sortedSystems) {
+        const item = document.createElement('div');
+        item.className = 'stat-item';
+        
+        const title = document.createElement('div');
+        title.className = 'stat-item-title';
+        title.textContent = systemName;
+        item.appendChild(title);
+        
+        const canvas = document.createElement('canvas');
+        canvas.className = 'stat-chart';
+        canvas.width = 280;
+        canvas.height = 120;
+        drawChart(canvas, systemStats.success, systemStats.failed);
+        item.appendChild(canvas);
+        
+        const legend = document.createElement('div');
+        legend.className = 'stat-legend';
+        
+        const successLegend = document.createElement('div');
+        successLegend.className = 'stat-legend-item';
+        const successColor = document.createElement('div');
+        successColor.className = 'stat-legend-color';
+        successColor.style.background = '#22c55e';
+        successLegend.appendChild(successColor);
+        successLegend.appendChild(document.createTextNode(`Успешных: ${systemStats.success}`));
+        legend.appendChild(successLegend);
+        
+        const failedLegend = document.createElement('div');
+        failedLegend.className = 'stat-legend-item';
+        const failedColor = document.createElement('div');
+        failedColor.className = 'stat-legend-color';
+        failedColor.style.background = '#ef4444';
+        failedLegend.appendChild(failedColor);
+        failedLegend.appendChild(document.createTextNode(`Неуспешных: ${systemStats.failed}`));
+        legend.appendChild(failedLegend);
+        
+        item.appendChild(legend);
+        statsList.appendChild(item);
+      }
+    }
+
+    // Инициализация обработчика кнопки статистики
+    statsToggleBtn.addEventListener('click', toggleStats);
     
   </script>
 </body>
