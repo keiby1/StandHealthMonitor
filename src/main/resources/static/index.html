@@ -42,19 +42,22 @@
     /* Модальное окно для пинга */
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
     .modal-overlay.hidden { display: none; }
-    .modal-content { background: #ffffff; border-radius: 8px; width: 90%; max-width: 600px; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+    .modal-content { background: #ffffff; border-radius: 8px; width: 90%; max-width: 1200px; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
     .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid rgba(0,0,0,.12); }
     .modal-header h2 { margin: 0; font-size: 18px; }
     .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 4px; }
     .modal-close:hover { background: #f1f5f9; color: #0f172a; }
-    .modal-body { padding: 16px; overflow-y: auto; }
-    .ping-systems-list { display: flex; flex-direction: column; gap: 8px; }
-    .ping-system-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid rgba(0,0,0,.08); border-radius: 6px; background: #f8fafc; }
-    .ping-system-item-name { font-weight: 500; color: #0f172a; }
-    .ping-btn-item { font-size: 12px; padding: 6px 12px; border-radius: 6px; border: none; background: #10b981; color: #ffffff; cursor: pointer; }
+    .modal-body { padding: 16px; overflow-y: auto; display: flex; gap: 16px; }
+    .ping-systems-list { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
+    .ping-system-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid rgba(0,0,0,.08); border-radius: 6px; background: #f8fafc; gap: 12px; }
+    .ping-system-item-content { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+    .ping-system-item-name { font-weight: 500; color: #0f172a; flex-shrink: 0; }
+    .ping-system-chart { width: 200px; height: 40px; flex-shrink: 0; border: 1px solid rgba(0,0,0,.08); border-radius: 4px; }
+    .ping-btn-item { font-size: 12px; padding: 6px 12px; border-radius: 6px; border: none; background: #10b981; color: #ffffff; cursor: pointer; flex-shrink: 0; }
     .ping-btn-item:hover { background: #059669; }
     .ping-btn-item:disabled { background: #94a3b8; cursor: not-allowed; }
-    .ping-result { margin-top: 16px; padding: 12px; border-radius: 6px; }
+    .ping-result-container { width: 350px; flex-shrink: 0; display: flex; flex-direction: column; }
+    .ping-result { padding: 12px; border-radius: 6px; }
     .ping-result-success { background: #d1fae5; border: 1px solid #10b981; color: #065f46; }
     .ping-result-error { background: #fee2e2; border: 1px solid #ef4444; color: #991b1b; }
     .ping-result-info { background: #dbeafe; border: 1px solid #3b82f6; color: #1e40af; }
@@ -140,7 +143,9 @@
         <div id="pingSystemsList" class="ping-systems-list">
           <div class="muted">Загрузка списка систем...</div>
         </div>
-        <div id="pingResult" class="ping-result hidden"></div>
+        <div class="ping-result-container">
+          <div id="pingResult" class="ping-result hidden"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -584,10 +589,6 @@
       }
     }
 
-    function pingToggleStats(){
-      alert('asd');
-    }
-
     function calculateMonthStats(year, monthIndex) {
       const stats = new Map(); // systemName -> { success: number, failed: number }
       
@@ -679,6 +680,123 @@
         ctx.textBaseline = 'top';
         ctx.fillText(String(failed), width / 2, 16);
       }
+    }
+
+    /**
+     * Рассчитывает количество ошибок за день для конкретной системы
+     * @param {Object} dayItem - запись за день
+     * @param {string} systemName - название системы
+     * @returns {number} количество ошибок
+     */
+    function computeFailedCountForSystem(dayItem, systemName) {
+      if (!dayItem || !Array.isArray(dayItem.stat)) return 0;
+      let failed = 0;
+      for (const item of dayItem.stat) {
+        if (item.system === systemName) {
+          const statusStr = String(item.status);
+          const isSuccess = successStatuses.has(statusStr);
+          if (!isSuccess) {
+            const itemCount = (item.count && typeof item.count === 'number') ? item.count : 1;
+            failed += itemCount;
+          }
+        }
+      }
+      return failed;
+    }
+
+    /**
+     * Рассчитывает статистику за последние 14 дней для конкретной системы
+     * @param {string} systemName - название системы
+     * @returns {Array} массив объектов {date: string, failedCount: number, hasData: boolean} за последние 14 дней
+     */
+    function calculateLast14DaysStats(systemName) {
+      const today = new Date();
+      const stats = [];
+      
+      for (let i = 13; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        const key = toDataKey(date);
+        const rec = dayToRecord.get(key);
+        
+        let failedCount = 0;
+        let hasData = false;
+        
+        if (rec && Array.isArray(rec.stat)) {
+          // Проверяем, есть ли данные для этой системы
+          for (const stat of rec.stat) {
+            if (stat.system === systemName) {
+              hasData = true;
+              break;
+            }
+          }
+          
+          // Считаем количество ошибок для этой системы
+          if (hasData) {
+            failedCount = computeFailedCountForSystem(rec, systemName);
+          }
+        }
+        
+        stats.push({
+          date: key,
+          failedCount: failedCount,
+          hasData: hasData
+        });
+      }
+      
+      return stats;
+    }
+
+    /**
+     * Рисует столбчатую диаграмму за последние 14 дней
+     * @param {HTMLCanvasElement} canvas - canvas элемент
+     * @param {string} systemName - название системы
+     */
+    function drawBarChart14Days(canvas, systemName) {
+      const ctx = canvas.getContext('2d');
+      const width = canvas.width;
+      const height = canvas.height;
+      const stats = calculateLast14DaysStats(systemName);
+      
+      // Очищаем canvas
+      ctx.clearRect(0, 0, width, height);
+      
+      if (stats.length === 0) {
+        ctx.fillStyle = '#e5e7eb';
+        ctx.fillRect(0, 0, width, height);
+        ctx.fillStyle = '#64748b';
+        ctx.font = '10px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Нет данных', width / 2, height / 2);
+        return;
+      }
+      
+      const barWidth = Math.floor((width - 2) / 14); // 14 дней, с небольшим отступом
+      const barSpacing = 1;
+      const effectiveBarWidth = barWidth - barSpacing;
+      
+      for (let i = 0; i < stats.length; i++) {
+        const stat = stats[i];
+        const x = i * barWidth + 1;
+        const barHeight = height - 2;
+        
+        if (!stat.hasData) {
+          // Нет данных - серый
+          ctx.fillStyle = '#e5e7eb';
+          ctx.fillRect(x, 1, effectiveBarWidth, barHeight);
+        } else {
+          // Используем цвет из критериев на основе количества ошибок
+          const color = colorForFailed(stat.failedCount);
+          ctx.fillStyle = color;
+          ctx.fillRect(x, 1, effectiveBarWidth, barHeight);
+        }
+      }
+      
+      // Добавляем границу
+      ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(0, 0, width, height);
     }
 
     function updateStats() {
@@ -777,16 +895,27 @@
           const item = document.createElement('div');
           item.className = 'ping-system-item';
           
+          const content = document.createElement('div');
+          content.className = 'ping-system-item-content';
+          
           const name = document.createElement('div');
           name.className = 'ping-system-item-name';
           name.textContent = systemName;
+          
+          const chartCanvas = document.createElement('canvas');
+          chartCanvas.className = 'ping-system-chart';
+          chartCanvas.width = 200;
+          chartCanvas.height = 40;
+          drawBarChart14Days(chartCanvas, systemName);
           
           const pingButton = document.createElement('button');
           pingButton.className = 'ping-btn-item';
           pingButton.textContent = 'Пингануть';
           pingButton.onclick = () => executePing(systemName, pingButton);
           
-          item.appendChild(name);
+          content.appendChild(name);
+          content.appendChild(chartCanvas);
+          item.appendChild(content);
           item.appendChild(pingButton);
           pingSystemsList.appendChild(item);
         }
