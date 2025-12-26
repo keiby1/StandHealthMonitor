@@ -1,5 +1,7 @@
 package com.example.StandHealthMonitor.dto;
 
+import java.util.List;
+
 /**
  * DTO для ответа пинга системы.
  */
@@ -9,6 +11,7 @@ public class PingResponse {
     private String statusCode;
     private String message;
     private boolean success;
+    private List<OperStatPbj> steps;
 
     public PingResponse() {}
 
@@ -18,6 +21,15 @@ public class PingResponse {
         this.statusCode = statusCode;
         this.message = message;
         this.success = success;
+    }
+
+    public PingResponse(String systemName, Integer httpCode, String statusCode, String message, boolean success, List<OperStatPbj> steps) {
+        this.systemName = systemName;
+        this.httpCode = httpCode;
+        this.statusCode = statusCode;
+        this.message = message;
+        this.success = success;
+        this.steps = steps;
     }
 
     public String getSystemName() {
@@ -58,6 +70,18 @@ public class PingResponse {
 
     public void setSuccess(boolean success) {
         this.success = success;
+    }
+
+    public List<OperStatPbj> getSteps() {
+        return steps;
+    }
+
+    public void setSteps(List<OperStatPbj> steps) {
+        this.steps = steps;
+    }
+
+    public void add(OperStatPbj step){
+        this.steps.add(step);
     }
 }
 

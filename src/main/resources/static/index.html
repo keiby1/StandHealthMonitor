@@ -65,6 +65,13 @@
     .ping-result-details { font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
     .ping-result-row { display: flex; gap: 8px; }
     .ping-result-label { font-weight: 500; }
+    .ping-result-steps { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,.1); }
+    .ping-result-steps-title { font-weight: 600; margin-bottom: 8px; font-size: 13px; }
+    .ping-result-steps-list { display: flex; flex-direction: column; gap: 6px; }
+    .ping-result-step-item { padding: 8px; border-radius: 4px; background: rgba(255,255,255,.5); border: 1px solid rgba(0,0,0,.08); }
+    .ping-result-step-row { display: flex; gap: 8px; font-size: 12px; margin-bottom: 4px; }
+    .ping-result-step-row:last-child { margin-bottom: 0; }
+    .ping-result-step-label { font-weight: 500; min-width: 80px; }
     .stats-sidebar.hidden { display: none; }
     .stats-sidebar h2 { margin: 0 0 16px 0; font-size: 16px; }
     .stats-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
@@ -1004,6 +1011,51 @@
       pingResult.innerHTML = '';
       pingResult.appendChild(title);
       pingResult.appendChild(details);
+      
+      // Добавляем информацию о шагах, если она есть
+      if (result.steps && Array.isArray(result.steps) && result.steps.length > 0) {
+        const stepsSection = document.createElement('div');
+        stepsSection.className = 'ping-result-steps';
+        
+        const stepsTitle = document.createElement('div');
+        stepsTitle.className = 'ping-result-steps-title';
+        stepsTitle.textContent = 'Шаги выполнения:';
+        stepsSection.appendChild(stepsTitle);
+        
+        const stepsList = document.createElement('div');
+        stepsList.className = 'ping-result-steps-list';
+        
+        result.steps.forEach((step, index) => {
+          const stepItem = document.createElement('div');
+          stepItem.className = 'ping-result-step-item';
+          
+          if (step.step) {
+            const stepRow = document.createElement('div');
+            stepRow.className = 'ping-result-step-row';
+            stepRow.innerHTML = `<span class="ping-result-step-label">Шаг:</span> <span>${step.step}</span>`;
+            stepItem.appendChild(stepRow);
+          }
+          
+          if (step.status) {
+            const statusRow = document.createElement('div');
+            statusRow.className = 'ping-result-step-row';
+            statusRow.innerHTML = `<span class="ping-result-step-label">Статус:</span> <span>${step.status}</span>`;
+            stepItem.appendChild(statusRow);
+          }
+          
+          if (step.httpCode) {
+            const httpCodeRow = document.createElement('div');
+            httpCodeRow.className = 'ping-result-step-row';
+            httpCodeRow.innerHTML = `<span class="ping-result-step-label">HTTP код:</span> <span>${step.httpCode}</span>`;
+            stepItem.appendChild(httpCodeRow);
+          }
+          
+          stepsList.appendChild(stepItem);
+        });
+        
+        stepsSection.appendChild(stepsList);
+        pingResult.appendChild(stepsSection);
+      }
     }
 
     // Инициализация обработчиков для модального окна пинга
