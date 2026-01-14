@@ -56,6 +56,8 @@ public class SystemPingServiceImpl implements SystemPingService {
         obj.setHttpCode("220");
         obj.setStatus("123");
         obj.setStep("asd");
+        obj.setRequestBody("{\"Rq\":\"123\"}");
+        obj.setResponseBody("{\"Rs\":\"qwe\"}");
 
         List<OperStatPbj> list = new LinkedList<>();
         list.add(obj);

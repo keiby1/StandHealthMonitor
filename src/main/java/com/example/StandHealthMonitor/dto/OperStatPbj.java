@@ -4,6 +4,8 @@ public class OperStatPbj {
     String step;
     String status;
     String httpCode;
+    String requestBody;
+    String responseBody;
 
     public OperStatPbj() {
     }
@@ -12,6 +14,14 @@ public class OperStatPbj {
         this.step = step;
         this.status = status;
         this.httpCode = httpCode;
+    }
+
+    public OperStatPbj(String step, String status, String httpCode, String requestBody, String responseBody) {
+        this.step = step;
+        this.status = status;
+        this.httpCode = httpCode;
+        this.requestBody = requestBody;
+        this.responseBody = responseBody;
     }
 
     public String getStep() {
@@ -38,12 +48,30 @@ public class OperStatPbj {
         this.httpCode = httpCode;
     }
 
+    public String getRequestBody() {
+        return requestBody;
+    }
+
+    public void setRequestBody(String requestBody) {
+        this.requestBody = requestBody;
+    }
+
+    public String getResponseBody() {
+        return responseBody;
+    }
+
+    public void setResponseBody(String responseBody) {
+        this.responseBody = responseBody;
+    }
+
     @Override
     public String toString() {
         return "OperStatPbj{" +
                 "step='" + step + '\'' +
                 ", status='" + status + '\'' +
                 ", httpCode='" + httpCode + '\'' +
+                ", requestBody='" + requestBody + '\'' +
+                ", responseBody='" + responseBody + '\'' +
                 '}';
     }
 }
