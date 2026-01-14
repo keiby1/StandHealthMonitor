@@ -1,5 +1,6 @@
 package com.example.StandHealthMonitor.service;
 
+import com.example.StandHealthMonitor.dto.PingResponse;
 import com.example.StandHealthMonitor.dto.RsStatObj;
 import org.springframework.stereotype.Component;
 
@@ -15,10 +16,9 @@ import org.springframework.stereotype.Component;
 public class ExamplePeriodicTask6 implements PeriodicTask {
     
     @Override
-    public RsStatObj execute() {
-        // Реализуйте здесь свою логику
+    public PingResponse execute() {
         System.out.println("Пример периодической задачи выполнен");
-        return new RsStatObj(200, "A7");
+        return new PingResponse("A6", 200,  "NOT_IMPLEMENTED", "Метод ping() не реализован. Пожалуйста, реализуйте его в SystemPingServiceImpl", false);
     }
 }
 

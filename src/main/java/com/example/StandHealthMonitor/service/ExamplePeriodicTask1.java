@@ -1,6 +1,6 @@
 package com.example.StandHealthMonitor.service;
 
-import com.example.StandHealthMonitor.dto.RsStatObj;
+import com.example.StandHealthMonitor.dto.PingResponse;
 import org.springframework.stereotype.Component;
 
 /**
@@ -12,13 +12,12 @@ import org.springframework.stereotype.Component;
  * автоматически зарегистрировал ваш класс.
  */
 @Component
-public class ExamplePeriodicTask implements PeriodicTask {
+public class ExamplePeriodicTask1 implements PeriodicTask {
     
     @Override
-    public RsStatObj execute() {
-        // Реализуйте здесь свою логику
+    public PingResponse execute() {
         System.out.println("Пример периодической задачи выполнен");
-        return new RsStatObj(200, "A1");
+        return new PingResponse("A1", 200, "0", "Все ок", true);
     }
 }
 

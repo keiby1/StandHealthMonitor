@@ -1,5 +1,6 @@
 package com.example.StandHealthMonitor.service;
 
+import com.example.StandHealthMonitor.dto.PingResponse;
 import com.example.StandHealthMonitor.dto.RsStatObj;
 
 /**
@@ -11,6 +12,6 @@ public interface PeriodicTask {
      * Метод, который будет вызываться периодически.
      * Реализуйте здесь свою логику.
      */
-    RsStatObj execute();
+    PingResponse execute();
 }
 

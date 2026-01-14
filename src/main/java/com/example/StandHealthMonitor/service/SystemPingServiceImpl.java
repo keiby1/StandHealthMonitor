@@ -40,38 +40,73 @@ public class SystemPingServiceImpl implements SystemPingService {
 
     @Override
     public PingResponse ping(String systemName) {
+
+        switch (systemName) {
+            case "A1": {
+                return new ExamplePeriodicTask1().execute();
+            }
+            case "A2": {
+                return new ExamplePeriodicTask2().execute();
+            }
+            case "A3": {
+                return new ExamplePeriodicTask3().execute();
+            }
+            case "A4": {
+                return new ExamplePeriodicTask4().execute();
+            }
+            case "A5": {
+                return new ExamplePeriodicTask5().execute();
+            }
+            case "A6": {
+                return new ExamplePeriodicTask6().execute();
+            }
+            case "A7": {
+                return new ExamplePeriodicTask7().execute();
+            }
+            case "A8": {
+                return new ExamplePeriodicTask8().execute();
+            }
+            case "A9": {
+                return new ExamplePeriodicTask9().execute();
+            }
+            case "B1": {
+                return new ExamplePeriodicTask10().execute();
+            }
+            default:
+                return null;
+        }
         // TODO: Реализуйте метод для выполнения пинга системы
         // Отправьте запрос в указанную систему и получите:
         // 1. HTTP код ответа
         // 2. Статус код операции из response body
-        Integer status = -1;
-
-        if (systemName.equals("A1")) {
-            System.out.println("A1!!!!!!!!!!!!!!!!!!!");
-            RsStatObj execute = new ExamplePeriodicTask().execute();
-            status = execute.getStatus();
-        }
-
-        OperStatPbj obj = new OperStatPbj();
-        obj.setHttpCode("220");
-        obj.setStatus("123");
-        obj.setStep("asd");
-        obj.setRequestBody("{\"Rq\":\"123\"}");
-        obj.setResponseBody("{\"Rs\":\"qwe\"}");
-
-        List<OperStatPbj> list = new LinkedList<>();
-        list.add(obj);
-        list.add(obj);
-
-        // Временная заглушка - замените на реальную реализацию
-        return new PingResponse(
-                systemName,
-                status, // Not Implemented
-                "NOT_IMPLEMENTED",
-                "Метод ping() не реализован. Пожалуйста, реализуйте его в SystemPingServiceImpl",
-                false,
-                list
-        );
+//        Integer status = -1;
+//
+//        if (systemName.equals("A1")) {
+//            System.out.println("A1!!!!!!!!!!!!!!!!!!!");
+//            RsStatObj execute = new ExamplePeriodicTask1().execute();
+//            status = execute.getStatus();
+//        }
+//
+//        OperStatPbj obj = new OperStatPbj();
+//        obj.setHttpCode("220");
+//        obj.setStatus("123");
+//        obj.setStep("asd");
+//        obj.setRequestBody("{\"Rq\":\"123\"}");
+//        obj.setResponseBody("{\"Rs\":\"qwe\"}");
+//
+//        List<OperStatPbj> list = new LinkedList<>();
+//        list.add(obj);
+//        list.add(obj);
+//
+//        // Временная заглушка - замените на реальную реализацию
+//        return new PingResponse(
+//                systemName,
+//                status, // Not Implemented
+//                "NOT_IMPLEMENTED",
+//                "Метод ping() не реализован. Пожалуйста, реализуйте его в SystemPingServiceImpl",
+//                false,
+//                list
+//        );
     }
 }
 

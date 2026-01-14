@@ -1,5 +1,6 @@
 package com.example.StandHealthMonitor.service;
 
+import com.example.StandHealthMonitor.dto.PingResponse;
 import com.example.StandHealthMonitor.dto.RsStatObj;
 import org.springframework.stereotype.Component;
 
@@ -15,10 +16,16 @@ import org.springframework.stereotype.Component;
 public class ExamplePeriodicTask10 implements PeriodicTask {
     
     @Override
-    public RsStatObj execute() {
-        // Реализуйте здесь свою логику
+    public PingResponse execute() {
+
+        try {
+            Thread.sleep(10000L);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         System.out.println("Пример периодической задачи выполнен");
-        return new RsStatObj(200, "B1");
+        return new PingResponse("B1", 429, "-1", "RL Timeount", false);
     }
 }
 

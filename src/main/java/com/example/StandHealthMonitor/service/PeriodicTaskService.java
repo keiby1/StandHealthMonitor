@@ -1,5 +1,6 @@
 package com.example.StandHealthMonitor.service;
 
+import com.example.StandHealthMonitor.dto.PingResponse;
 import com.example.StandHealthMonitor.dto.RsStatObj;
 import com.example.StandHealthMonitor.entity.SystemStatus;
 import com.example.StandHealthMonitor.repository.SystemStatusRepository;
@@ -130,12 +131,12 @@ public class PeriodicTaskService {
             try {
                 String taskName = task.getClass().getSimpleName();
                 System.out.println("Выполнение задачи: " + taskName);
-                RsStatObj rs = task.execute();
+                PingResponse rs = task.execute();
 
                 if (rs != null) {
                     // Сохраняем или обновляем статус в БД
                     updateOrCreateSystemStatus(rs);
-                    System.out.println("Статус сохранен: система=" + rs.getSystem() + ", статус=" + rs.getStatus());
+                    System.out.println("Статус сохранен: система=" + rs.getSystemName() + ", статус=" + rs.getStatusCode());
                 } else {
                     System.out.println("Задача " + taskName + " вернула null, статус не сохранен");
                 }
@@ -161,15 +162,15 @@ public class PeriodicTaskService {
      * @param rs объект с данными о статусе системы
      */
     @Transactional
-    public void updateOrCreateSystemStatus(RsStatObj rs) {
-        if (rs == null || rs.getSystem() == null || rs.getSystem().trim().isEmpty()) {
+    public void updateOrCreateSystemStatus(PingResponse rs) {
+        if (rs == null || rs.getSystemName() == null || rs.getSystemName().trim().isEmpty()) {
             System.err.println("RsStatObj содержит некорректные данные, пропускаем сохранение");
             return;
         }
 
         LocalDate today = LocalDate.now();
-        String systemName = rs.getSystem().trim();
-        String status = String.valueOf(rs.getStatus()); // Преобразуем int в String
+        String systemName = rs.getSystemName().trim();
+        String status = String.valueOf(rs.getStatusCode()); // Преобразуем int в String
 
         // Ищем существующую запись за сегодня
         SystemStatus existingStatus = systemStatusRepository
