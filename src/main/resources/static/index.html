@@ -56,8 +56,8 @@
     .ping-btn-item { font-size: 12px; padding: 6px 12px; border-radius: 6px; border: none; background: #10b981; color: #ffffff; cursor: pointer; flex-shrink: 0; }
     .ping-btn-item:hover { background: #059669; }
     .ping-btn-item:disabled { background: #94a3b8; cursor: not-allowed; }
-    .ping-result-container { width: 350px; flex-shrink: 0; display: flex; flex-direction: column; }
-    .ping-result { padding: 12px; border-radius: 6px; }
+    .ping-result-container { width: 350px; flex-shrink: 0; position: relative; }
+    .ping-result { padding: 12px; border-radius: 6px; position: absolute; width: 100%; }
     .ping-result-success { background: #d1fae5; border: 1px solid #10b981; color: #065f46; }
     .ping-result-error { background: #fee2e2; border: 1px solid #ef4444; color: #991b1b; }
     .ping-result-info { background: #dbeafe; border: 1px solid #3b82f6; color: #1e40af; }
@@ -886,6 +886,20 @@
     function closePingModalHandler() {
       pingModal.classList.add('hidden');
       pingResult.classList.add('hidden');
+      currentPingItemElement = null;
+      
+      // Удаляем обработчик прокрутки
+      if (scrollSyncHandler) {
+        const modalBody = pingModal.querySelector('.modal-body');
+        modalBody.removeEventListener('scroll', scrollSyncHandler);
+        scrollSyncHandler = null;
+      }
+      
+      // Удаляем обработчик изменения размера окна
+      if (resizeSyncHandler) {
+        window.removeEventListener('resize', resizeSyncHandler);
+        resizeSyncHandler = null;
+      }
     }
 
     async function loadSystemsList() {
@@ -926,7 +940,7 @@
           const pingButton = document.createElement('button');
           pingButton.className = 'ping-btn-item';
           pingButton.textContent = 'Пингануть';
-          pingButton.onclick = () => executePing(systemName, pingButton);
+          pingButton.onclick = () => executePing(systemName, pingButton, item);
           
           content.appendChild(name);
           content.appendChild(chartCanvas);
@@ -940,10 +954,17 @@
       }
     }
 
-    async function executePing(systemName, button) {
+    let currentPingItemElement = null;
+    let scrollSyncHandler = null;
+    let resizeSyncHandler = null;
+
+    async function executePing(systemName, button, itemElement) {
       // Блокируем кнопку
       button.disabled = true;
       button.textContent = '...';
+      
+      // Сохраняем ссылку на элемент системы
+      currentPingItemElement = itemElement;
       
       // Скрываем предыдущий результат
       pingResult.classList.add('hidden');
@@ -958,7 +979,7 @@
         });
         
         const data = await response.json();
-        showPingResult(data);
+        showPingResult(data, itemElement);
       } catch (error) {
         console.error('Ошибка выполнения пинга:', error);
         showPingResult({
@@ -967,7 +988,7 @@
           statusCode: 'ERROR',
           message: `Ошибка выполнения пинга: ${error.message}`,
           success: false
-        });
+        }, itemElement);
       } finally {
         // Разблокируем кнопку
         button.disabled = false;
@@ -1052,7 +1073,7 @@
       return spoiler;
     }
 
-    function showPingResult(result) {
+    function showPingResult(result, itemElement) {
       pingResult.classList.remove('hidden');
       
       // Определяем класс стиля на основе результата
@@ -1153,6 +1174,51 @@
         stepsSection.appendChild(stepsList);
         pingResult.appendChild(stepsSection);
       }
+      
+      // Прокручиваем элемент системы в видимую область
+      itemElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      
+      // Синхронизируем позицию результата с элементом системы
+      // Используем setTimeout чтобы дождаться завершения scrollIntoView
+      setTimeout(() => {
+        syncResultPosition(itemElement);
+      }, 100);
+      
+      // Удаляем предыдущий обработчик прокрутки, если он есть
+      if (scrollSyncHandler) {
+        const modalBody = pingModal.querySelector('.modal-body');
+        modalBody.removeEventListener('scroll', scrollSyncHandler);
+      }
+      
+      // Добавляем обработчик прокрутки для синхронизации позиции
+      const modalBody = pingModal.querySelector('.modal-body');
+      scrollSyncHandler = () => syncResultPosition(itemElement);
+      modalBody.addEventListener('scroll', scrollSyncHandler);
+      
+      // Удаляем предыдущий обработчик изменения размера окна, если он есть
+      if (resizeSyncHandler) {
+        window.removeEventListener('resize', resizeSyncHandler);
+      }
+      
+      // Добавляем обработчик изменения размера окна для обновления синхронизации
+      resizeSyncHandler = () => syncResultPosition(itemElement);
+      window.addEventListener('resize', resizeSyncHandler);
+    }
+    
+    function syncResultPosition(itemElement) {
+      if (!itemElement) return;
+      
+      const modalBody = pingModal.querySelector('.modal-body');
+      const pingResultContainer = document.querySelector('.ping-result-container');
+      
+      const itemRect = itemElement.getBoundingClientRect();
+      const modalBodyRect = modalBody.getBoundingClientRect();
+      const containerRect = pingResultContainer.getBoundingClientRect();
+      
+      // Вычисляем позицию элемента относительно видимой области modalBody
+      // и выравниваем результат точно с верхней границей элемента системы
+      const relativeTop = itemRect.top - containerRect.top;
+      pingResult.style.top = `${relativeTop}px`;
     }
 
     // Инициализация обработчиков для модального окна пинга
