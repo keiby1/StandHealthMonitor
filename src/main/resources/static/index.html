@@ -978,8 +978,8 @@
           pingButton.textContent = 'Проверить';
           pingButton.onclick = () => executePing(systemName, pingButton, item);
           
-          content.appendChild(name);
           content.appendChild(chartCanvas);
+          content.appendChild(name);
           item.appendChild(content);
           item.appendChild(pingButton);
           pingSystemsList.appendChild(item);
@@ -1128,6 +1128,13 @@
       
       const details = document.createElement('div');
       details.className = 'ping-result-details';
+      
+      if (result.fullSystemName) {
+        const fullNameRow = document.createElement('div');
+        fullNameRow.className = 'ping-result-row';
+        fullNameRow.innerHTML = `<span class="ping-result-label">Полное название:</span> <span>${result.fullSystemName}</span>`;
+        details.appendChild(fullNameRow);
+      }
       
       if (result.httpCode !== undefined && result.httpCode !== null) {
         const httpRow = document.createElement('div');
@@ -1407,6 +1414,9 @@
       
       // Обновляем tooltip с дополнительной информацией
       let tooltipText = result.systemName || 'Неизвестная система';
+      if (result.fullSystemName) {
+        tooltipText += `\nПолное название: ${result.fullSystemName}`;
+      }
       if (result.httpCode !== undefined && result.httpCode !== null) {
         tooltipText += `\nHTTP код: ${result.httpCode}`;
       }

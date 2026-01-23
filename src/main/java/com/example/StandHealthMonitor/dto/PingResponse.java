@@ -7,6 +7,7 @@ import java.util.List;
  */
 public class PingResponse {
     private String systemName;
+    private String fullSystemName;
     private Integer httpCode;
     private String statusCode;
     private String message;
@@ -23,8 +24,27 @@ public class PingResponse {
         this.success = success;
     }
 
+    public PingResponse(String systemName, String fullSystemName, Integer httpCode, String statusCode, String message, boolean success) {
+        this.systemName = systemName;
+        this.fullSystemName = fullSystemName;
+        this.httpCode = httpCode;
+        this.statusCode = statusCode;
+        this.message = message;
+        this.success = success;
+    }
+
     public PingResponse(String systemName, Integer httpCode, String statusCode, String message, boolean success, List<OperStatPbj> steps) {
         this.systemName = systemName;
+        this.httpCode = httpCode;
+        this.statusCode = statusCode;
+        this.message = message;
+        this.success = success;
+        this.steps = steps;
+    }
+
+    public PingResponse(String systemName, String fullSystemName, Integer httpCode, String statusCode, String message, boolean success, List<OperStatPbj> steps) {
+        this.systemName = systemName;
+        this.fullSystemName = fullSystemName;
         this.httpCode = httpCode;
         this.statusCode = statusCode;
         this.message = message;
@@ -70,6 +90,14 @@ public class PingResponse {
 
     public void setSuccess(boolean success) {
         this.success = success;
+    }
+
+    public String getFullSystemName() {
+        return fullSystemName;
+    }
+
+    public void setFullSystemName(String fullSystemName) {
+        this.fullSystemName = fullSystemName;
     }
 
     public List<OperStatPbj> getSteps() {

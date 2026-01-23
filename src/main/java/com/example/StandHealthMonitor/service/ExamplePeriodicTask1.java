@@ -17,7 +17,7 @@ public class ExamplePeriodicTask1 implements PeriodicTask {
     @Override
     public PingResponse execute() {
         System.out.println("Пример периодической задачи выполнен");
-        return new PingResponse("A1", 200, "0", "Все ок", true);
+        return new PingResponse("A1", "System A", 200, "0", "Все ок", true);
     }
 }
 
