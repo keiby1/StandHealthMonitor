@@ -142,6 +142,9 @@
             <button id="statsToggleBtn" class="stats-toggle-btn" aria-label="Показать/скрыть статистику">📊 Статистика</button>
             <button id="pingToggleBtn" class="stats-toggle-btn" aria-label="Показать/скрыть проверку систем">🔍 Проверка</button>
             <button id="pingAllBtn" class="stats-toggle-btn" aria-label="Проверить все системы">⚡ Проверить все</button>
+            <select id="systemFilterSelect" aria-label="Фильтр по системе" style="font-size: 12px; padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(0,0,0,.12); background: #ffffff; color: #0f172a; cursor: pointer;">
+              <option value="ALL">ALL</option>
+            </select>
           </div>
           <div class="meta">
             <span id="range"></span>
@@ -224,6 +227,7 @@
     const pingAllModal = document.getElementById('pingAllModal');
     const closePingAllModal = document.getElementById('closePingAllModal');
     const pingAllGrid = document.getElementById('pingAllGrid');
+    const systemFilterSelect = document.getElementById('systemFilterSelect');
     
 
     let successStatuses = new Set(['200']);
@@ -234,6 +238,8 @@
     let currentYear;
     let currentMonth; // 0..11
     let statsVisible = false;
+    let selectedSystem = 'ALL'; // Выбранная система для фильтрации
+    let availableSystems = []; // Список доступных систем
     
 
     function parseRuDate(d) {
@@ -267,10 +273,15 @@
      * - Учитывается поле count из таблицы SystemStatus
      * - Суммируются count всех неуспешных статусов
      */
-    function computeFailedCount(dayItem) {
+    function computeFailedCount(dayItem, systemFilter = null) {
       if (!dayItem || !Array.isArray(dayItem.stat)) return 0;
       let failed = 0;
       for (const item of dayItem.stat) {
+        // Если указан фильтр по системе, пропускаем записи других систем
+        if (systemFilter && systemFilter !== 'ALL' && item.system !== systemFilter) {
+          continue;
+        }
+        
         // Проверяем, является ли статус успешным (200 = успешный)
         const statusStr = String(item.status);
         const isSuccess = successStatuses.has(statusStr);
@@ -401,6 +412,11 @@
       }
 
       for (const s of rec.stat) {
+        // Если выбран фильтр по системе, показываем только выбранную систему
+        if (selectedSystem && selectedSystem !== 'ALL' && s.system !== selectedSystem) {
+          continue;
+        }
+        
         const card = document.createElement('div');
         card.className = 'card';
         const top = document.createElement('div');
@@ -467,7 +483,7 @@
         let bg = '#e5e7eb'; // по умолчанию серый — нет данных
         let title = `${key}: нет данных`;
         if (rec) {
-          const failed = computeFailedCount(rec);
+          const failed = computeFailedCount(rec, selectedSystem);
           bg = colorForFailed(failed);
           title = failed === 0 
             ? `${key}: все успешно (0 ошибок)` 
@@ -505,9 +521,10 @@
 
     async function loadAll() {
       try {
-        const [dataResp, criteriaResp] = await Promise.all([
+        const [dataResp, criteriaResp, systemsResp] = await Promise.all([
           fetch(DATA_URL),
-          fetch(CRITERIA_URL)
+          fetch(CRITERIA_URL),
+          fetch(PING_SYSTEMS_URL)
         ]);
         
         if (!dataResp.ok) {
@@ -519,6 +536,13 @@
 
         const dataJson = await dataResp.json();
         const criteriaJson = await criteriaResp.json();
+        
+        // Загружаем список систем
+        if (systemsResp.ok) {
+          const systemsData = await systemsResp.json();
+          availableSystems = Array.isArray(systemsData.systems) ? systemsData.systems : [];
+          populateSystemFilter();
+        }
 
         // Статус "200" считается успешным по умолчанию
         successStatuses = new Set(['200']);
@@ -546,6 +570,16 @@
         console.error('Ошибка загрузки данных:', err);
         calendarEl.innerHTML = `<span class="muted">Ошибка загрузки данных: ${err.message}</span>`;
       }
+    }
+    
+    function populateSystemFilter() {
+      systemFilterSelect.innerHTML = '<option value="ALL">ALL</option>';
+      availableSystems.sort().forEach(systemName => {
+        const option = document.createElement('option');
+        option.value = systemName;
+        option.textContent = systemName;
+        systemFilterSelect.appendChild(option);
+      });
     }
 
     // Инициализация после загрузки DOM
@@ -599,6 +633,12 @@
       yearSelect.onchange = ()=> { 
         currentYear = Number(yearSelect.value); 
         renderCurrentMonth(); 
+      };
+      
+      // Обработчик изменения фильтра по системе
+      systemFilterSelect.onchange = () => {
+        selectedSystem = systemFilterSelect.value;
+        renderCurrentMonth();
       };
     }
 
