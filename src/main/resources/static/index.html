@@ -1261,6 +1261,25 @@
             httpCodeRow.innerHTML = `<span class="ping-result-step-label">HTTP код:</span> <span>${step.httpCode}</span>`;
             stepItem.appendChild(httpCodeRow);
           }
+
+          // URL (после HTTP кода и до спойлера тела запроса)
+          if (step.url) {
+            const urlRow = document.createElement('div');
+            urlRow.className = 'ping-result-step-row';
+            const urlLabel = document.createElement('span');
+            urlLabel.className = 'ping-result-step-label';
+            urlLabel.textContent = 'URL:';
+
+            const urlLink = document.createElement('a');
+            urlLink.href = step.url;
+            urlLink.textContent = step.url;
+            urlLink.target = '_blank';
+            urlLink.rel = 'noopener noreferrer';
+
+            urlRow.appendChild(urlLabel);
+            urlRow.appendChild(urlLink);
+            stepItem.appendChild(urlRow);
+          }
           
           // Добавляем спойлер для тела запроса, если оно есть
           if (step.requestBody) {

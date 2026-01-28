@@ -6,6 +6,7 @@ public class OperStatPbj {
     String httpCode;
     String requestBody;
     String responseBody;
+    String url;
 
     public OperStatPbj() {
     }
@@ -22,6 +23,23 @@ public class OperStatPbj {
         this.httpCode = httpCode;
         this.requestBody = requestBody;
         this.responseBody = responseBody;
+    }
+
+    public OperStatPbj(String step, String status, String httpCode, String requestBody, String responseBody, String url) {
+        this.step = step;
+        this.status = status;
+        this.httpCode = httpCode;
+        this.requestBody = requestBody;
+        this.responseBody = responseBody;
+        this.url = url;
+    }
+
+    public String getUrl() {
+        return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
     }
 
     public String getStep() {
@@ -72,6 +90,7 @@ public class OperStatPbj {
                 ", httpCode='" + httpCode + '\'' +
                 ", requestBody='" + requestBody + '\'' +
                 ", responseBody='" + responseBody + '\'' +
+                ", url='" + url + '\'' +
                 '}';
     }
 }
