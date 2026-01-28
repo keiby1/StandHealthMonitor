@@ -65,6 +65,8 @@
     .ping-result { padding: 12px; border-radius: 6px; position: absolute; width: 100%; }
     #pingModal .ping-result-container { min-height: fit-content; }
     .ping-result-success { background: #d1fae5; border: 1px solid #10b981; color: #065f46; }
+    .ping-result-warn { background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; }
+    .ping-result-softfail { background: #ffedd5; border: 1px solid #fb923c; color: #9a3412; }
     .ping-result-error { background: #fee2e2; border: 1px solid #ef4444; color: #991b1b; }
     .ping-result-info { background: #dbeafe; border: 1px solid #3b82f6; color: #1e40af; }
     .ping-result-title { font-weight: 600; margin-bottom: 8px; }
@@ -95,6 +97,8 @@
     .ping-all-item.loading { background: #f1f5f9; border-color: #94a3b8; }
     .ping-all-item.loading::after { content: '...'; font-size: 18px; color: #64748b; }
     .ping-all-item.success { background: #d1fae5; border-color: #10b981; }
+    .ping-all-item.warn { background: #fef3c7; border-color: #f59e0b; }
+    .ping-all-item.softfail { background: #ffedd5; border-color: #fb923c; }
     .ping-all-item.error { background: #fee2e2; border-color: #ef4444; }
     .ping-all-item.info { background: #dbeafe; border-color: #3b82f6; }
     .stats-sidebar.hidden { display: none; }
@@ -1172,16 +1176,33 @@
       return spoiler;
     }
 
+    /**
+     * Единые правила выбора "статуса" для раскраски результатов проверки.
+     * Правила:
+     * - success: result.success === true
+     * - warn:    result.success !== true && httpCode == 429
+     * - softfail:(переходный) result.success == false && httpCode == 200
+     * - error:   result.success !== true && httpCode != 200 && httpCode != 429
+     * - info:    всё остальное
+     */
+    function classifyPingResult(result) {
+      const raw = result?.httpCode;
+      const hasCode = raw !== undefined && raw !== null && raw !== '';
+      const httpCode = hasCode ? Number(raw) : null;
+
+      if (result && result.success === true) return 'success';
+      if (httpCode === 429) return 'warn';
+      if (result && result.success === false && httpCode === 200) return 'softfail';
+      if (result && result.success !== true && httpCode !== null && httpCode !== 200 && httpCode !== 429) return 'error';
+      return 'info';
+    }
+
     function showPingResult(result, itemElement) {
       pingResult.classList.remove('hidden');
       
       // Определяем класс стиля на основе результата
-      let resultClass = 'ping-result-info';
-      if (result.success) {
-        resultClass = 'ping-result-success';
-      } else if (result.httpCode && result.httpCode >= 400) {
-        resultClass = 'ping-result-error';
-      }
+      const status = classifyPingResult(result);
+      const resultClass = `ping-result-${status}`;
       
       pingResult.className = `ping-result ${resultClass}`;
       
@@ -1483,14 +1504,7 @@
       itemElement.classList.remove('loading');
       
       // Определяем класс стиля на основе результата
-      let resultClass = 'info';
-      if (result.success) {
-        resultClass = 'success';
-      } else if (result.httpCode && result.httpCode >= 400) {
-        resultClass = 'error';
-      } else if (result.statusCode === 'NOT_IMPLEMENTED' || result.httpCode === -1) {
-        resultClass = 'info';
-      }
+      const resultClass = classifyPingResult(result);
       
       itemElement.classList.add(resultClass);
       
