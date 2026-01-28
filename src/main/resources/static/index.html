@@ -300,6 +300,15 @@
     }
 
     /**
+     * Проверяет, есть ли данные за день для конкретной системы.
+     * Важно для фильтра: "0 ошибок" != "нет данных".
+     */
+    function hasDataForSystem(dayItem, systemName) {
+      if (!dayItem || !Array.isArray(dayItem.stat)) return false;
+      return dayItem.stat.some(s => s && s.system === systemName);
+    }
+
+    /**
      * Определяет цвет для дня на основе количества ошибок и критериев из таблицы Criteria.
      * Правила:
      * - Если ошибок 0, используется критерий с count=0 (зеленый)
@@ -307,9 +316,6 @@
      * - Если такого критерия нет, используется минимальный критерий для ошибок (count > 0)
      */
     function colorForFailed(count) {
-      // Отладка
-      console.log(`colorForFailed: count=${count}, criteria.length=${criteria?.length || 0}`);
-      
       // Если нет критериев, возвращаем цвет по умолчанию
       if (!criteria || criteria.length === 0) {
         console.warn('Нет критериев!');
@@ -320,7 +326,6 @@
       if (count === 0) {
         const zeroCriteria = criteria.find(c => c.count === 0);
         if (zeroCriteria) {
-          console.log(`Найден критерий для 0 ошибок: count=${zeroCriteria.count}, color=${zeroCriteria.color}`);
           return zeroCriteria.color;
         }
         return '#86efac'; // зеленый по умолчанию
@@ -337,7 +342,6 @@
       }
       
       if (candidate) {
-        console.log(`Найден подходящий критерий: ошибок=${count}, критерий count=${candidate.count}, color=${candidate.color}`);
         return candidate.color;
       }
       
@@ -346,7 +350,6 @@
       const errorCriteria = criteria.filter(c => c.count > 0);
       if (errorCriteria.length > 0) {
         const minErrorCriteria = errorCriteria.reduce((a, b) => a.count < b.count ? a : b);
-        console.log(`Используется минимальный критерий для ошибок: ошибок=${count}, критерий count=${minErrorCriteria.count}, color=${minErrorCriteria.color}`);
         return minErrorCriteria.color;
       }
       
@@ -415,6 +418,14 @@
         return;
       }
 
+      // При включённом фильтре по системе: если данных за день для выбранной системы нет — показываем "Данные отсутствуют"
+      if (selectedSystem && selectedSystem !== 'ALL' && !hasDataForSystem(rec, selectedSystem)) {
+        detailsEl.classList.remove('hidden');
+        systemsEl.innerHTML = '<span class="muted">Данные отсутствуют</span>';
+        return;
+      }
+
+      let renderedAny = false;
       for (const s of rec.stat) {
         // Если выбран фильтр по системе, показываем только выбранную систему
         if (selectedSystem && selectedSystem !== 'ALL' && s.system !== selectedSystem) {
@@ -445,6 +456,10 @@
         card.appendChild(top);
         card.appendChild(status);
         systemsEl.appendChild(card);
+        renderedAny = true;
+      }
+      if (!renderedAny) {
+        systemsEl.innerHTML = '<span class="muted">Данные отсутствуют</span>';
       }
       detailsEl.classList.remove('hidden');
     }
@@ -487,15 +502,19 @@
         let bg = '#e5e7eb'; // по умолчанию серый — нет данных
         let title = `${key}: нет данных`;
         if (rec) {
-          const failed = computeFailedCount(rec, selectedSystem);
-          bg = colorForFailed(failed);
-          title = failed === 0 
-            ? `${key}: все успешно (0 ошибок)` 
-            : `${key}: ошибок ${failed}`;
-          
-          // Отладка для первых нескольких дней
-          if (day <= 3) {
-            console.log(`День ${key}: ошибок=${failed}, цвет=${bg}, данные:`, rec.stat);
+          // Если включён фильтр и у выбранной системы нет данных за этот день — считаем "нет данных", а не "0 ошибок"
+          const systemHasData = (!selectedSystem || selectedSystem === 'ALL')
+            ? true
+            : hasDataForSystem(rec, selectedSystem);
+
+          if (systemHasData) {
+            const failed = computeFailedCount(rec, selectedSystem);
+            bg = colorForFailed(failed);
+            title = failed === 0
+              ? `${key}: все успешно (0 ошибок)`
+              : `${key}: ошибок ${failed}`;
+          } else {
+            cell.classList.add('no-data');
           }
         } else {
           cell.classList.add('no-data');
