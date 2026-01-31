@@ -145,6 +145,7 @@
             <select id="yearSelect" aria-label="Год"></select>
             <button id="nextMonth" aria-label="Следующий месяц">▶</button>
             <button id="statsToggleBtn" class="stats-toggle-btn" aria-label="Показать/скрыть статистику">📊 Статистика</button>
+            <button id="statsV2Btn" class="stats-toggle-btn" aria-label="Статистика v2 за месяц">📈 Статистика (v2)</button>
             <button id="pingToggleBtn" class="stats-toggle-btn" aria-label="Показать/скрыть проверку систем">🔍 Проверка</button>
             <button id="pingAllBtn" class="stats-toggle-btn" aria-label="Проверить все системы">⚡ Проверить все</button>
             <select id="systemFilterSelect" aria-label="Фильтр по системе" style="font-size: 12px; padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(0,0,0,.12); background: #ffffff; color: #0f172a; cursor: pointer;">
@@ -208,6 +209,23 @@
     </div>
   </div>
 
+  <!-- Модальное окно Статистика (v2) -->
+  <div class="modal-overlay hidden" id="statsV2Modal">
+    <div class="modal-content" style="max-width: 1100px; width: 95%;">
+      <div class="modal-header">
+        <h2 id="statsV2ModalTitle">Статистика (v2) за месяц</h2>
+        <button class="modal-close" id="closeStatsV2Modal" aria-label="Закрыть">×</button>
+      </div>
+      <div class="modal-body" id="statsV2ModalBody" style="flex-direction: column; gap: 24px;">
+        <div id="statsV2ChartContainer" style="width: 100%; min-height: 300px;">
+          <canvas id="statsV2LineChart" width="1000" height="300"></canvas>
+        </div>
+        <div id="statsV2ChartLegend" class="legend" style="flex-wrap: wrap; gap: 12px; margin-top: -8px;"></div>
+        <div id="statsV2SystemsInfo" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;"></div>
+      </div>
+    </div>
+  </div>
+
   <script>
     const DATA_URL = '/api/data';
     const CRITERIA_URL = '/api/criteria';
@@ -236,7 +254,14 @@
     const closePingAllModal = document.getElementById('closePingAllModal');
     const pingAllGrid = document.getElementById('pingAllGrid');
     const systemFilterSelect = document.getElementById('systemFilterSelect');
-    
+    const statsV2Btn = document.getElementById('statsV2Btn');
+    const statsV2Modal = document.getElementById('statsV2Modal');
+    const closeStatsV2Modal = document.getElementById('closeStatsV2Modal');
+    const statsV2ModalTitle = document.getElementById('statsV2ModalTitle');
+    const statsV2ModalBody = document.getElementById('statsV2ModalBody');
+    const statsV2LineChart = document.getElementById('statsV2LineChart');
+    const statsV2ChartLegend = document.getElementById('statsV2ChartLegend');
+    const statsV2SystemsInfo = document.getElementById('statsV2SystemsInfo');
 
     let successStatuses = new Set(['200']);
     let criteria = [];
@@ -976,6 +1001,259 @@
     // Инициализация обработчика кнопки статистики
     statsToggleBtn.addEventListener('click', toggleStats);
 
+    // Статистика (v2) — линейная диаграмма и информация о простоях
+    const SYSTEM_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1', '#14b8a6', '#a855f7'];
+    
+    /**
+     * Возвращает успешные запросы по дням и системам за выбранный месяц.
+     * @returns {Map<string, number[]>} systemName -> массив [день1, день2, ...] (индекс 0 = 1-е число)
+     */
+    function calculateSuccessPerDayForMonth(year, monthIndex) {
+      const daysInMonth = getDaysInMonth(year, monthIndex);
+      const result = new Map();
+      
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, monthIndex, day);
+        const key = toDataKey(date);
+        const rec = dayToRecord.get(key);
+        
+        if (!rec || !Array.isArray(rec.stat)) continue;
+        
+        for (const s of rec.stat) {
+          const systemName = s.system || 'Неизвестно';
+          const isSuccess = successStatuses.has(String(s.status));
+          const count = (s.count && typeof s.count === 'number') ? s.count : 1;
+          
+          if (!result.has(systemName)) {
+            result.set(systemName, new Array(daysInMonth).fill(0));
+          }
+          const arr = result.get(systemName);
+          if (isSuccess) {
+            arr[day - 1] += count;
+          }
+        }
+      }
+      
+      return result;
+    }
+    
+    /**
+     * Вычисляет интервалы простоя для системы.
+     * Интервал: неуспешная проверка = начало, последующая успешная = конец.
+     * @returns {Array<{start: string, end: string, days: number}>}
+     */
+    function calculateDowntimeIntervalsForSystem(year, monthIndex, systemName) {
+      const daysInMonth = getDaysInMonth(year, monthIndex);
+      const intervals = [];
+      let inDowntime = false;
+      let intervalStart = null;
+      
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, monthIndex, day);
+        const key = toDataKey(date);
+        const rec = dayToRecord.get(key);
+        
+        let successCount = 0;
+        let failedCount = 0;
+        
+        if (rec && Array.isArray(rec.stat)) {
+          for (const s of rec.stat) {
+            if (s.system !== systemName) continue;
+            const count = (s.count && typeof s.count === 'number') ? s.count : 1;
+            if (successStatuses.has(String(s.status))) {
+              successCount += count;
+            } else {
+              failedCount += count;
+            }
+          }
+        }
+        
+        if (failedCount > 0 && !inDowntime) {
+          inDowntime = true;
+          intervalStart = key;
+        }
+        if (successCount > 0 && inDowntime) {
+          const endKey = day > 1 ? toDataKey(new Date(year, monthIndex, day - 1)) : intervalStart;
+          const startDate = parseRuDate(intervalStart);
+          const endDateParsed = parseRuDate(endKey);
+          const days = Math.max(1, Math.round((endDateParsed - startDate) / (24 * 60 * 60 * 1000)) + 1);
+          intervals.push({ start: intervalStart, end: endKey, days });
+          inDowntime = false;
+        }
+      }
+      
+      if (inDowntime && intervalStart) {
+        const lastKey = toDataKey(new Date(year, monthIndex, daysInMonth));
+        const startDate = parseRuDate(intervalStart);
+        const endDateParsed = parseRuDate(lastKey);
+        const days = Math.max(1, Math.round((endDateParsed - startDate) / (24 * 60 * 60 * 1000)) + 1);
+        intervals.push({ start: intervalStart, end: lastKey, days });
+      }
+      
+      return intervals;
+    }
+    
+    /**
+     * Рисует линейную диаграмму: X = дни месяца, Y = успешные запросы, серия = система.
+     */
+    function drawLineChartStatsV2(canvas, successPerDay, daysInMonth) {
+      const ctx = canvas.getContext('2d');
+      const width = canvas.width;
+      const height = canvas.height;
+      const padding = { top: 20, right: 20, bottom: 40, left: 50 };
+      const chartWidth = width - padding.left - padding.right;
+      const chartHeight = height - padding.top - padding.bottom;
+      
+      ctx.clearRect(0, 0, width, height);
+      
+      const systems = Array.from(successPerDay.keys()).sort((a, b) => a.localeCompare(b, 'ru'));
+      if (systems.length === 0) {
+        ctx.fillStyle = '#64748b';
+        ctx.font = '14px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Нет данных за выбранный месяц', width / 2, height / 2);
+        return;
+      }
+      
+      let maxY = 0;
+      for (const sys of systems) {
+        const arr = successPerDay.get(sys);
+        for (let i = 0; i < daysInMonth; i++) {
+          if (arr[i] > maxY) maxY = arr[i];
+        }
+      }
+      if (maxY === 0) maxY = 1;
+      
+      const stepX = chartWidth / Math.max(1, daysInMonth - 1);
+      const scaleY = chartHeight / maxY;
+      
+      ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(padding.left, padding.top);
+      ctx.lineTo(padding.left, padding.top + chartHeight);
+      ctx.lineTo(padding.left + chartWidth, padding.top + chartHeight);
+      ctx.stroke();
+      
+      ctx.fillStyle = '#334155';
+      ctx.font = '11px Arial';
+      ctx.textAlign = 'right';
+      for (let d = 1; d <= daysInMonth; d += Math.max(1, Math.floor(daysInMonth / 10))) {
+        const x = padding.left + (d - 1) * stepX;
+        ctx.fillText(String(d), x, padding.top + chartHeight + 14);
+      }
+      
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('0', padding.left - 6, padding.top + chartHeight);
+      ctx.fillText(String(maxY), padding.left - 6, padding.top);
+      
+      systems.forEach((systemName, idx) => {
+        const color = SYSTEM_COLORS[idx % SYSTEM_COLORS.length];
+        const arr = successPerDay.get(systemName);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        let first = true;
+        for (let day = 0; day < daysInMonth; day++) {
+          const val = arr[day] || 0;
+          const x = padding.left + day * stepX;
+          const y = padding.top + chartHeight - val * scaleY;
+          if (first) {
+            ctx.moveTo(x, y);
+            first = false;
+          } else {
+            ctx.lineTo(x, y);
+          }
+        }
+        ctx.stroke();
+      });
+      
+      return systems;
+    }
+    
+    function openStatsV2Modal() {
+      const monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+      statsV2ModalTitle.textContent = `Статистика (v2) — ${monthNames[currentMonth]} ${currentYear}`;
+      
+      const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+      const successPerDay = calculateSuccessPerDayForMonth(currentYear, currentMonth);
+      const monthStats = calculateMonthStats(currentYear, currentMonth);
+      
+      const systems = drawLineChartStatsV2(statsV2LineChart, successPerDay, daysInMonth) || [];
+      
+      statsV2ChartLegend.innerHTML = '';
+      systems.forEach((systemName, idx) => {
+        const wrap = document.createElement('div');
+        wrap.style.display = 'inline-flex';
+        wrap.style.alignItems = 'center';
+        wrap.style.gap = '6px';
+        const sw = document.createElement('span');
+        sw.className = 'swatch';
+        sw.style.background = SYSTEM_COLORS[idx % SYSTEM_COLORS.length];
+        const label = document.createElement('span');
+        label.className = 'muted';
+        label.textContent = systemName;
+        wrap.appendChild(sw);
+        wrap.appendChild(label);
+        statsV2ChartLegend.appendChild(wrap);
+      });
+      
+      statsV2SystemsInfo.innerHTML = '';
+      for (const systemName of systems) {
+        const stats = monthStats.get(systemName) || { success: 0, failed: 0 };
+        const total = stats.success + stats.failed;
+        const percentSuccess = total > 0 ? ((stats.success / total) * 100).toFixed(1) : '0';
+        const intervals = calculateDowntimeIntervalsForSystem(currentYear, currentMonth, systemName);
+        
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.padding = '12px';
+        
+        const title = document.createElement('div');
+        title.className = 'stat-item-title';
+        title.textContent = systemName;
+        title.style.marginBottom = '8px';
+        card.appendChild(title);
+        
+        const percentEl = document.createElement('div');
+        percentEl.style.fontSize = '13px';
+        percentEl.style.marginBottom = '6px';
+        percentEl.innerHTML = `<strong>Успешных запросов:</strong> ${percentSuccess}% (${stats.success} из ${total})`;
+        card.appendChild(percentEl);
+        
+        const downtimeEl = document.createElement('div');
+        downtimeEl.style.fontSize = '12px';
+        downtimeEl.style.color = '#64748b';
+        if (intervals.length === 0) {
+          downtimeEl.textContent = 'Простоев за месяц не зафиксировано';
+        } else {
+          const parts = intervals.map(i => `${i.start} — ${i.end} (${i.days} дн.)`);
+          downtimeEl.innerHTML = `<strong>Недоступность:</strong><br>${parts.join('<br>')}`;
+        }
+        card.appendChild(downtimeEl);
+        
+        statsV2SystemsInfo.appendChild(card);
+      }
+      
+      if (systems.length === 0) {
+        statsV2SystemsInfo.innerHTML = '<div class="muted">Нет данных за выбранный месяц</div>';
+      }
+      
+      statsV2Modal.classList.remove('hidden');
+    }
+    
+    function closeStatsV2ModalHandler() {
+      statsV2Modal.classList.add('hidden');
+    }
+    
+    statsV2Btn.addEventListener('click', openStatsV2Modal);
+    closeStatsV2Modal.addEventListener('click', closeStatsV2ModalHandler);
+    statsV2Modal.addEventListener('click', (e) => {
+      if (e.target === statsV2Modal) closeStatsV2ModalHandler();
+    });
+
     // Проверка систем
     const PING_SYSTEMS_URL = '/api/ping/systems';
     const PING_EXECUTE_URL = '/api/ping/execute';
@@ -1414,6 +1692,9 @@
       }
       if (e.key === 'Escape' && !pingAllModal.classList.contains('hidden')) {
         closePingAllModalHandler();
+      }
+      if (e.key === 'Escape' && !statsV2Modal.classList.contains('hidden')) {
+        closeStatsV2ModalHandler();
       }
     });
 
