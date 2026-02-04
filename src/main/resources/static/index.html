@@ -3,173 +3,453 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Мониторинг доступности стенда</title>
+  <title>Stand Health Monitor — мониторинг доступности стенда</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
-    :root { --day-size: 44px; --day-font: 24px; }
-    body { font-family: Arial, sans-serif; margin: 0; padding: 16px; background:#ffffff; color:#0f172a; }
-    h1 { margin: 0 0 12px 0; font-size: 20px; }
-    .main-container { display: flex; gap: 16px; align-items: flex-start; }
+    /* Cursor homepage style: light theme, purple accent, clean typography */
+    :root {
+      --day-size: 44px;
+      --day-font: 24px;
+      --bg-primary: #fafafa;
+      --bg-secondary: #f4f4f5;
+      --bg-card: #ffffff;
+      --bg-elevated: #f4f4f5;
+      --border: rgba(0, 0, 0, 0.08);
+      --border-hover: rgba(0, 0, 0, 0.14);
+      --text-primary: #18181b;
+      --text-secondary: #3f3f46;
+      --text-muted: #71717a;
+      --accent: #8b5cf6;
+      --accent-hover: #7c3aed;
+      --accent-soft: rgba(139, 92, 246, 0.12);
+      --radius: 8px;
+      --radius-sm: 6px;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    /* Header */
+    .app-header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+    .app-header-inner {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .app-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .app-logo-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      object-fit: contain;
+      display: block;
+    }
+    .app-title {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+    .app-subtitle {
+      margin: 4px 0 0 0;
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .main-container {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 24px;
+    }
     .main-content { flex: 1; min-width: 0; }
-    .wrap { display: grid; gap: 16px; }
-    .toolbar { display:flex; align-items:center; gap:8px; flex-wrap: wrap; }
-    .legend { display:flex; align-items:center; gap:8px; flex-wrap: wrap; }
-    .swatch { width:16px; height:16px; border-radius:3px; border:1px solid rgba(0,0,0,.1); }
-    .calendar { display:grid; grid-template-columns: repeat(7, var(--day-size)); gap:6px; }
-    .weekday { width: var(--day-size); text-align:center; font-size:12px; color:#334155; padding:4px 0; }
-    .day { width: var(--day-size); aspect-ratio: 1/1; display:flex; align-items:center; justify-content:center; font-size: var(--day-font); border-radius:6px; cursor:pointer; border:1px solid rgba(0,0,0,.08); background:#f8fafc; color:#0f172a; transition: transform .05s ease, box-shadow .2s ease; }
-    .day:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,.08); }
-    .day[aria-selected="true"] { outline:2px solid #3b82f6; outline-offset:2px; }
-    .day.muted { color:#94a3b8; background:#f1f5f9; cursor:default; }
-    .day.no-data { background:#e5e7eb; color:#0f172a; }
-    .meta { display:flex; align-items:center; gap:12px; color:#334155; font-size:12px; }
-    .controls { display:flex; gap:8px; align-items:center; }
-    .controls button, .controls select { font-size:12px; padding:6px 8px; border-radius:6px; border:1px solid rgba(0,0,0,.12); background:#ffffff; color:#0f172a; cursor:pointer; }
-    .controls button:hover { background:#f8fafc; }
-    .details { padding:12px; border:1px solid rgba(0,0,0,.12); border-radius:8px; background:#ffffff; }
-    .details h2 { margin:0 0 8px 0; font-size:16px; }
-    .systems { display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; }
-    .card { padding:10px; border-radius:8px; background:#f8fafc; border:1px solid rgba(0,0,0,.08); display:flex; flex-direction:column; gap:6px; }
-    .badge { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#0f172a; width:100%; }
-    .muted { color:#64748b; font-size:12px; }
-    .hidden { display:none; }
-    .notice { font-size:12px; color:#64748b; }
-    
+    .wrap { display: grid; gap: 20px; }
+    .page-title { display: none; }
+    .toolbar {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .toolbar-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .toolbar-group-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-right: 4px;
+    }
+    .legend {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding: 12px 0;
+    }
+    .swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+    .calendar-wrapper {
+      background: #ffffff;
+      padding: 12px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      width: fit-content;
+    }
+    .calendar { display: grid; grid-template-columns: repeat(7, var(--day-size)); gap: 8px; }
+    .weekday {
+      width: var(--day-size);
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-muted);
+      padding: 6px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .day {
+      width: var(--day-size);
+      aspect-ratio: 1/1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--day-font);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      transition: transform 0.1s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .day:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--border-hover); }
+    .day[aria-selected="true"] {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px var(--accent-soft);
+    }
+    .day.muted { color: var(--text-muted); background: var(--bg-secondary); cursor: default; }
+    .day.no-data { background: var(--bg-elevated); color: var(--text-secondary); }
+    .meta { display: flex; align-items: center; gap: 12px; color: var(--text-muted); font-size: 13px; }
+    .controls { display: flex; gap: 6px; align-items: center; }
+    .controls button,
+    .controls select {
+      font-size: 13px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .controls button:hover,
+    .controls select:hover { background: var(--bg-elevated); border-color: var(--border-hover); }
+    .controls select { min-width: 100px; }
+    .details {
+      padding: 20px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-card);
+    }
+    .details h2 { margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: var(--text-primary); }
+    .systems { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .card {
+      padding: 14px;
+      border-radius: var(--radius);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .card:hover { border-color: var(--border-hover); background: var(--bg-elevated); }
+    .badge { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-primary); width: 100%; }
+    .muted { color: var(--text-muted); font-size: 13px; }
+    .hidden { display: none !important; }
+    .notice { font-size: 13px; color: var(--text-muted); }
+
+    /* Action buttons — accent style */
+    .btn-primary {
+      font-size: 13px;
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    .btn-secondary {
+      font-size: 13px;
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .btn-secondary:hover { background: var(--bg-elevated); border-color: var(--border-hover); }
+
     /* Статистика */
-    .stats-toggle-btn { font-size:12px; padding:6px 12px; border-radius:6px; border:1px solid rgba(0,0,0,.12); background:#3b82f6; color:#ffffff; cursor:pointer; }
-    .stats-toggle-btn:hover { background:#2563eb; }
-    .stats-sidebar { width: 600px; min-width: 400px; padding: 16px; border:1px solid rgba(0,0,0,.12); border-radius:8px; background:#ffffff; position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
-    
-    /* Модальное окно для проверки */
-    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .stats-sidebar {
+      width: 340px;
+      min-width: 300px;
+      padding: 20px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-card);
+      position: sticky;
+      top: 100px;
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
+    }
+
+    /* Модальные окна */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(6px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000;
+    }
     .modal-overlay.hidden { display: none; }
     #pingModal.modal-overlay { align-items: flex-start; overflow-y: auto; padding: 20px; }
-    .modal-content { background: #ffffff; border-radius: 8px; width: 90%; max-width: 1200px; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+    .modal-content {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      width: 90%; max-width: 1200px; max-height: 80vh;
+      display: flex; flex-direction: column;
+      box-shadow: var(--shadow);
+    }
     #pingModal .modal-content { max-height: none; height: auto; min-height: 400px; margin: auto; }
     #pingAllModal .modal-content { max-width: 3600px; width: 95%; }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid rgba(0,0,0,.12); }
-    .modal-header h2 { margin: 0; font-size: 18px; }
-    .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 4px; }
-    .modal-close:hover { background: #f1f5f9; color: #0f172a; }
-    .modal-body { padding: 16px; overflow-y: auto; display: flex; gap: 16px; }
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-header h2 { margin: 0; font-size: 18px; font-weight: 600; color: var(--text-primary); }
+    .modal-close {
+      background: transparent; border: none; font-size: 22px; cursor: pointer;
+      color: var(--text-muted); padding: 0; width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: var(--radius-sm);
+      transition: background 0.2s, color 0.2s;
+    }
+    .modal-close:hover { background: var(--bg-elevated); color: var(--text-primary); }
+    .modal-body { padding: 20px; overflow-y: auto; display: flex; gap: 20px; }
     #pingModal .modal-body { overflow-y: auto; max-height: none; align-items: flex-start; }
     #pingAllModal .modal-body { flex-direction: column; }
-    .ping-systems-list { display: flex; flex-direction: column; gap: 8px; width: 600px; flex-shrink: 0; }
-    .ping-system-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid rgba(0,0,0,.08); border-radius: 6px; background: #f8fafc; gap: 12px; }
+    .ping-systems-list { display: flex; flex-direction: column; gap: 10px; width: 600px; flex-shrink: 0; padding: 16px; border-radius: var(--radius-sm); }
+    .ping-system-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+      background: var(--bg-secondary); gap: 12px;
+      transition: border-color 0.2s;
+    }
+    .ping-system-item:hover { border-color: var(--border-hover); }
     .ping-system-item-content { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
-    .ping-system-item-name { font-weight: 500; color: #0f172a; flex-shrink: 0; }
-    .ping-system-chart { width: 200px; height: 40px; flex-shrink: 0; border: 1px solid rgba(0,0,0,.08); border-radius: 4px; }
-    .ping-btn-item { font-size: 12px; padding: 6px 12px; border-radius: 6px; border: none; background: #10b981; color: #ffffff; cursor: pointer; flex-shrink: 0; }
-    .ping-btn-item:hover { background: #059669; }
-    .ping-btn-item:disabled { background: #94a3b8; cursor: not-allowed; }
+    .ping-system-item-name { font-weight: 500; color: var(--text-primary); flex-shrink: 0; }
+    .ping-system-chart { width: 200px; height: 40px; flex-shrink: 0; border: 1px solid var(--border); border-radius: 4px; }
+    .ping-btn-item {
+      font-size: 13px; padding: 8px 14px; border-radius: var(--radius-sm);
+      border: none; background: #10b981; color: #fff; cursor: pointer; flex-shrink: 0;
+      font-weight: 500; transition: background 0.2s, transform 0.1s;
+    }
+    .ping-btn-item:hover { background: #059669; transform: translateY(-1px); }
+    .ping-btn-item:disabled { background: var(--text-muted); cursor: not-allowed; transform: none; }
     .ping-result-container { width: 350px; flex-shrink: 0; position: relative; }
-    .ping-result { padding: 12px; border-radius: 6px; position: absolute; width: 100%; }
+    .ping-result { padding: 16px; border-radius: var(--radius-sm); position: absolute; width: 100%; border: 1px solid; }
     #pingModal .ping-result-container { min-height: fit-content; }
-    .ping-result-success { background: #d1fae5; border: 1px solid #10b981; color: #065f46; }
-    .ping-result-warn { background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; }
-    .ping-result-softfail { background: #dbeafe; border: 1px solid #3b82f6; color: #1e40af; }
-    .ping-result-error { background: #fee2e2; border: 1px solid #ef4444; color: #991b1b; }
-    .ping-result-info { background: #fed7aa; border: 1px solid #f97316; color: #9a3412; }
-    .ping-result-title { font-weight: 600; margin-bottom: 8px; }
-    .ping-result-details { font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
+    .ping-result-success { background: #d1fae5; border-color: #10b981; color: #065f46; }
+    .ping-result-warn { background: #fef3c7; border-color: #f59e0b; color: #92400e; }
+    .ping-result-softfail { background: #dbeafe; border-color: #3b82f6; color: #1e40af; }
+    .ping-result-error { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
+    .ping-result-info { background: #ffedd5; border-color: #f97316; color: #9a3412; }
+    .ping-result-title { font-weight: 600; margin-bottom: 10px; color: inherit; }
+    .ping-result-details { font-size: 13px; display: flex; flex-direction: column; gap: 6px; }
     .ping-result-row { display: flex; gap: 8px; }
     .ping-result-label { font-weight: 500; }
-    .ping-result-steps { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,.1); }
-    .ping-result-steps-title { font-weight: 600; margin-bottom: 8px; font-size: 13px; }
-    .ping-result-steps-list { display: flex; flex-direction: column; gap: 6px; }
-    .ping-result-step-item { padding: 8px; border-radius: 4px; background: rgba(255,255,255,.5); border: 1px solid rgba(0,0,0,.08); }
-    .ping-result-step-row { display: flex; gap: 8px; font-size: 12px; margin-bottom: 4px; }
+    .ping-result-steps { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+    .ping-result-steps-title { font-weight: 600; margin-bottom: 10px; font-size: 13px; color: var(--text-primary); }
+    .ping-result-steps-list { display: flex; flex-direction: column; gap: 8px; }
+    .ping-result-step-item { padding: 12px; border-radius: var(--radius-sm); background: var(--bg-secondary); border: 1px solid var(--border); }
+    .ping-result-step-row { display: flex; gap: 8px; font-size: 13px; margin-bottom: 6px; color: var(--text-secondary); }
     .ping-result-step-row:last-child { margin-bottom: 0; }
-    .ping-result-step-label { font-weight: 500; min-width: 80px; }
-    .ping-result-spoiler { margin-top: 8px; }
-    .ping-result-spoiler-header { display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; font-size: 12px; font-weight: 500; padding: 4px 0; }
-    .ping-result-spoiler-header:hover { opacity: 0.8; }
+    .ping-result-step-label { font-weight: 500; min-width: 80px; color: var(--text-muted); }
+    .ping-result-spoiler { margin-top: 10px; }
+    .ping-result-spoiler-header { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; font-size: 13px; font-weight: 500; padding: 6px 0; color: var(--text-secondary); }
+    .ping-result-spoiler-header:hover { color: var(--text-primary); opacity: 0.9; }
     .ping-result-spoiler-icon { display: inline-block; transition: transform 0.2s ease; font-size: 10px; }
     .ping-result-spoiler-icon.expanded { transform: rotate(90deg); }
-    .ping-result-spoiler-content { display: none; margin-top: 6px; padding: 8px; background: rgba(0,0,0,.05); border-radius: 4px; border: 1px solid rgba(0,0,0,.1); }
+    .ping-result-spoiler-content { display: none; margin-top: 8px; padding: 10px; background: var(--bg-secondary); border-radius: 4px; border: 1px solid var(--border); }
     .ping-result-spoiler-content.expanded { display: block; }
-    .ping-result-spoiler-body { font-family: 'Courier New', monospace; font-size: 11px; white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow-y: auto; }
-    /* Модальное окно для массовой проверки */
-    .ping-all-grid { display: grid; grid-template-columns: repeat(10, minmax(50px, 1fr)); gap: 8px; padding: 16px; min-width: fit-content; }
+    .ping-result-spoiler-body { font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 12px; white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow-y: auto; color: var(--text-secondary); }
+    /* Массовая проверка */
+    .ping-all-grid { display: grid; grid-template-columns: repeat(10, minmax(50px, 1fr)); gap: 10px; padding: 20px; min-width: fit-content; }
     #pingAllModal .modal-body { overflow-x: auto; }
-    .ping-all-item { width: 100%; height: 40px; border-radius: 6px; border: 2px solid rgba(0,0,0,.1); display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; }
-    .ping-all-item-name { font-size: 11px; font-weight: 500; color: #0f172a; text-align: center; padding: 2px 4px; word-break: break-word; overflow: hidden; text-overflow: ellipsis; }
-    .ping-all-item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.15); }
-    .ping-all-item.loading { background: #f1f5f9; border-color: #94a3b8; }
-    .ping-all-item.loading::after { content: '...'; font-size: 18px; color: #64748b; }
+    .ping-all-item {
+      width: 100%; height: 44px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center; position: relative;
+      cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .ping-all-item-name { font-size: 11px; font-weight: 500; color: var(--text-primary); text-align: center; padding: 4px; word-break: break-word; overflow: hidden; text-overflow: ellipsis; }
+    .ping-all-item:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+    .ping-all-item.loading { background: var(--bg-elevated); border-color: var(--text-muted); }
+    .ping-all-item.loading::after { content: '...'; font-size: 18px; color: var(--text-muted); }
     .ping-all-item.success { background: #d1fae5; border-color: #10b981; }
     .ping-all-item.warn { background: #fef3c7; border-color: #f59e0b; }
-    .ping-all-item.softfail { background: #dbeafe ; border-color: #3b82f6; }
+    .ping-all-item.softfail { background: #dbeafe; border-color: #3b82f6; }
     .ping-all-item.error { background: #fee2e2; border-color: #ef4444; }
-    .ping-all-item.info { background: #fed7aa; border-color: #f97316; }
+    .ping-all-item.info { background: #ffedd5; border-color: #f97316; }
     .stats-sidebar.hidden { display: none; }
-    .stats-sidebar h2 { margin: 0 0 16px 0; font-size: 16px; }
-    .stats-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-    .stat-item { display: flex; flex-direction: column; gap: 8px; }
-    .stat-item-title { font-size: 14px; font-weight: 600; color: #0f172a; }
-    .stat-chart { width: 100%; height: 120px; border: 1px solid rgba(0,0,0,.08); border-radius: 6px; }
-    .stat-legend { display: flex; gap: 12px; font-size: 12px; }
+    .stats-sidebar h2 { margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: var(--text-primary); }
+    .modal-footer-note {
+      padding: 14px 20px; text-align: center; font-size: 13px;
+      color: var(--text-muted); border-top: 1px solid var(--border);
+    }
+    .stats-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .stat-item { display: flex; flex-direction: column; gap: 10px; }
+    .stat-item-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+    .stat-chart { width: 100%; height: 120px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+    .stat-legend { display: flex; gap: 14px; font-size: 12px; color: var(--text-secondary); }
     .stat-legend-item { display: flex; align-items: center; gap: 6px; }
-    .stat-legend-color { width: 12px; height: 12px; border-radius: 3px; }
-    
+    .stat-legend-color { width: 12px; height: 12px; border-radius: 4px; }
+
     @media (max-width: 1400px) {
-      .stats-sidebar { width: 500px; min-width: 350px; }
+      .stats-sidebar { width: 320px; min-width: 280px; }
     }
     @media (max-width: 1200px) {
       .main-container { flex-direction: column; }
-      .stats-sidebar { width: 100%; min-width: unset; position: static; max-height: none; }
+      .stats-sidebar { width: 100%; min-width: unset; position: static; max-height: none; top: auto; }
       .stats-list { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 768px) {
       .stats-list { grid-template-columns: 1fr; }
+      .toolbar-row { flex-direction: column; align-items: flex-start; }
+      .app-header-inner { flex-direction: column; align-items: flex-start; }
     }
     @media (max-width: 800px) {
       .systems { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 480px) {
       .systems { grid-template-columns: 1fr; }
+      .main-container { padding: 16px; }
     }
   </style>
   <link rel="icon" href="data:," />
-  <meta name="color-scheme" content="dark light">
+  <meta name="color-scheme" content="light">
   <meta name="description" content="Тепловая карта доступности стенда по дням и системам">
 </head>
 <body>
+  <header class="app-header">
+    <div class="app-header-inner">
+      <div class="app-logo">
+        <img src="/image/calendar_18780422.png" alt="" class="app-logo-icon">
+        <div>
+          <h1 class="app-title">Stand Health Monitor</h1>
+          <p class="app-subtitle">Мониторинг доступности стенда</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
   <div class="main-container">
     <div class="main-content">
       <div class="wrap">
-        <h1>Доступность стенда — теплокарта</h1>
+        <h1 class="page-title">Доступность стенда — теплокарта</h1>
         <div class="toolbar">
-          <div class="controls">
-            <button id="prevMonth" aria-label="Предыдущий месяц">◀</button>
-            <select id="monthSelect" aria-label="Месяц"></select>
-            <select id="yearSelect" aria-label="Год"></select>
-            <button id="nextMonth" aria-label="Следующий месяц">▶</button>
-            <button id="statsToggleBtn" class="stats-toggle-btn" aria-label="Показать/скрыть статистику">📊 Статистика</button>
-            <button id="statsV2Btn" class="stats-toggle-btn" aria-label="Статистика v2 за месяц">📈 Статистика (v2)</button>
-            <button id="pingToggleBtn" class="stats-toggle-btn" aria-label="Показать/скрыть проверку систем">🔍 Проверка</button>
-            <button id="pingAllBtn" class="stats-toggle-btn" aria-label="Проверить все системы">⚡ Проверить все</button>
-            <select id="systemFilterSelect" aria-label="Фильтр по системе" style="font-size: 12px; padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(0,0,0,.12); background: #ffffff; color: #0f172a; cursor: pointer;">
-              <option value="ALL">ALL</option>
-            </select>
+          <div class="toolbar-row">
+            <div class="toolbar-group">
+              <span class="toolbar-group-label">Период</span>
+              <div class="controls">
+                <button id="prevMonth" aria-label="Предыдущий месяц">◀</button>
+                <select id="monthSelect" aria-label="Месяц"></select>
+                <select id="yearSelect" aria-label="Год"></select>
+                <button id="nextMonth" aria-label="Следующий месяц">▶</button>
+              </div>
+              <span class="meta" style="margin-left: 8px;"><span id="range"></span></span>
+            </div>
+            <div class="toolbar-group">
+              <span class="toolbar-group-label">Действия</span>
+              <button id="statsV2Btn" class="btn-primary" aria-label="Статистика v2 за месяц">📈 Статистика v2</button>
+              <button id="pingToggleBtn" class="btn-primary" aria-label="Проверка систем">🔍 Проверка</button>
+              <button id="pingAllBtn" class="btn-primary" aria-label="Проверить все системы">⚡ Проверить все</button>
+            </div>
+            <div class="toolbar-group">
+              <span class="toolbar-group-label">Фильтр</span>
+              <select id="systemFilterSelect" aria-label="Фильтр по системе">
+                <option value="ALL">Все системы</option>
+              </select>
+            </div>
           </div>
-          <div class="meta">
-            <span id="range"></span>
-            <span class="notice">Кликните по дню для деталей по системам</span>
-          </div>
-          
         </div>
         <div class="legend" id="legend"></div>
-        <div class="calendar" id="weekdayHeader" aria-hidden="true"></div>
-        <div class="calendar" id="calendar" role="grid" aria-label="Календарь доступности"></div>
+        <div class="calendar-wrapper">
+          <div class="calendar" id="weekdayHeader" aria-hidden="true"></div>
+          <div class="calendar" id="calendar" role="grid" aria-label="Календарь доступности"></div>
+        </div>
+        <div class="toolbar-row">
+          <span class="notice">Кликните по дню для деталей по системам</span>
+        </div>
         <div class="details hidden" id="details">
           <h2 id="detailsTitle">Детали за день</h2>
           <div class="systems" id="systems"></div>
         </div>
       </div>
-    </div>
-    <div class="stats-sidebar hidden" id="statsSidebar">
-      <h2>Статистика за месяц</h2>
-      <div class="stats-list" id="statsList"></div>
     </div>
   </div>
 
@@ -203,8 +483,8 @@
           <div class="muted">Загрузка списка систем...</div>
         </div>
       </div>
-      <div style="padding: 12px 16px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid rgba(0,0,0,.08);">
-        *наведи курсор на систему, для получения подробностей
+      <div class="modal-footer-note">
+        * Наведите курсор на систему для получения подробностей
       </div>
     </div>
   </div>
@@ -241,10 +521,7 @@
     const nextMonthBtn = document.getElementById('nextMonth');
     const monthSelect = document.getElementById('monthSelect');
     const yearSelect = document.getElementById('yearSelect');
-    const statsToggleBtn = document.getElementById('statsToggleBtn');
     const pingToggleBtn = document.getElementById('pingToggleBtn');
-    const statsSidebar = document.getElementById('statsSidebar');
-    const statsList = document.getElementById('statsList');
     const pingModal = document.getElementById('pingModal');
     const closePingModal = document.getElementById('closePingModal');
     const pingSystemsList = document.getElementById('pingSystemsList');
@@ -270,10 +547,9 @@
     let allDates = []; // массив Date из data.json
     let currentYear;
     let currentMonth; // 0..11
-    let statsVisible = false;
     let selectedSystem = 'ALL'; // Выбранная система для фильтрации
     let availableSystems = []; // Список доступных систем
-    
+
 
     function parseRuDate(d) {
       const [dd, mm, yyyy] = d.split('.').map(Number);
@@ -314,11 +590,11 @@
         if (systemFilter && systemFilter !== 'ALL' && item.system !== systemFilter) {
           continue;
         }
-        
+
         // Проверяем, является ли статус успешным (200 = успешный)
         const statusStr = String(item.status);
         const isSuccess = successStatuses.has(statusStr);
-        
+
         if (!isSuccess) {
           // Учитываем count из таблицы SystemStatus
           const itemCount = (item.count && typeof item.count === 'number') ? item.count : 1;
@@ -350,7 +626,7 @@
         console.warn('Нет критериев!');
         return count === 0 ? '#86efac' : '#ef4444';
       }
-      
+
       // Если ошибок 0, используем критерий с count=0
       if (count === 0) {
         const zeroCriteria = criteria.find(c => c.count === 0);
@@ -359,7 +635,7 @@
         }
         return '#86efac'; // зеленый по умолчанию
       }
-      
+
       // Ищем максимальный критерий, где count <= количество ошибок
       let candidate = null;
       for (const c of criteria) {
@@ -369,11 +645,11 @@
           }
         }
       }
-      
+
       if (candidate) {
         return candidate.color;
       }
-      
+
       // Если не нашли подходящий критерий (ошибок меньше минимального критерия),
       // используем минимальный критерий для ошибок (count > 0)
       const errorCriteria = criteria.filter(c => c.count > 0);
@@ -381,7 +657,7 @@
         const minErrorCriteria = errorCriteria.reduce((a, b) => a.count < b.count ? a : b);
         return minErrorCriteria.color;
       }
-      
+
       // Fallback
       console.warn(`Не удалось найти подходящий критерий для ${count} ошибок`);
       return '#ef4444';
@@ -460,7 +736,7 @@
         if (selectedSystem && selectedSystem !== 'ALL' && s.system !== selectedSystem) {
           continue;
         }
-        
+
         const card = document.createElement('div');
         card.className = 'card';
         const top = document.createElement('div');
@@ -578,7 +854,7 @@
           fetch(CRITERIA_URL),
           fetch(PING_SYSTEMS_URL)
         ]);
-        
+
         if (!dataResp.ok) {
           throw new Error(`Ошибка загрузки данных: ${dataResp.status} ${dataResp.statusText}`);
         }
@@ -588,7 +864,7 @@
 
         const dataJson = await dataResp.json();
         const criteriaJson = await criteriaResp.json();
-        
+
         // Загружаем список систем
         if (systemsResp.ok) {
           const systemsData = await systemsResp.json();
@@ -599,7 +875,7 @@
         // Статус "200" считается успешным по умолчанию
         successStatuses = new Set(['200']);
         criteria = Array.isArray(criteriaJson.criterias) ? criteriaJson.criterias : [];
-        
+
         // Отладка: выводим загруженные критерии
         console.log('Загружены критерии:', criteria);
         console.log('Успешные статусы:', Array.from(successStatuses));
@@ -623,7 +899,7 @@
         calendarEl.innerHTML = `<span class="muted">Ошибка загрузки данных: ${err.message}</span>`;
       }
     }
-    
+
     function populateSystemFilter() {
       systemFilterSelect.innerHTML = '<option value="ALL">ALL</option>';
       availableSystems.sort().forEach(systemName => {
@@ -678,15 +954,15 @@
 
       prevMonthBtn.onclick = ()=> changeMonth(-1);
       nextMonthBtn.onclick = ()=> changeMonth(1);
-      monthSelect.onchange = ()=> { 
-        currentMonth = Number(monthSelect.value); 
-        renderCurrentMonth(); 
+      monthSelect.onchange = ()=> {
+        currentMonth = Number(monthSelect.value);
+        renderCurrentMonth();
       };
-      yearSelect.onchange = ()=> { 
-        currentYear = Number(yearSelect.value); 
-        renderCurrentMonth(); 
+      yearSelect.onchange = ()=> {
+        currentYear = Number(yearSelect.value);
+        renderCurrentMonth();
       };
-      
+
       // Обработчик изменения фильтра по системе
       systemFilterSelect.onchange = () => {
         selectedSystem = systemFilterSelect.value;
@@ -714,46 +990,30 @@
     function renderCurrentMonth() {
       clearSelection();
       buildCalendarMonth(currentYear, currentMonth);
-      if (statsVisible) {
-        updateStats();
-      }
-    }
-
-    // Статистика
-    function toggleStats() {
-      statsVisible = !statsVisible;
-      if (statsVisible) {
-        statsSidebar.classList.remove('hidden');
-        statsToggleBtn.textContent = '📊 Скрыть статистику';
-        updateStats();
-      } else {
-        statsSidebar.classList.add('hidden');
-        statsToggleBtn.textContent = '📊 Статистика';
-      }
     }
 
     function calculateMonthStats(year, monthIndex) {
       const stats = new Map(); // systemName -> { success: number, failed: number }
-      
+
       // Проходим по всем дням выбранного месяца
       const daysInMonth = getDaysInMonth(year, monthIndex);
       for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(year, monthIndex, day);
         const key = toDataKey(date);
         const rec = dayToRecord.get(key);
-        
+
         if (!rec || !Array.isArray(rec.stat)) continue;
-        
+
         for (const stat of rec.stat) {
           const systemName = stat.system || 'Неизвестно';
           const statusStr = String(stat.status);
           const isSuccess = successStatuses.has(statusStr);
           const count = (stat.count && typeof stat.count === 'number') ? stat.count : 1;
-          
+
           if (!stats.has(systemName)) {
             stats.set(systemName, { success: 0, failed: 0 });
           }
-          
+
           const systemStats = stats.get(systemName);
           if (isSuccess) {
             systemStats.success += count;
@@ -762,67 +1022,8 @@
           }
         }
       }
-      
-      return stats;
-    }
 
-    function drawChart(canvas, success, failed) {
-      const ctx = canvas.getContext('2d');
-      const width = canvas.width;
-      const height = canvas.height;
-      const total = success + failed;
-      
-      if (total === 0) {
-        ctx.fillStyle = '#e5e7eb';
-        ctx.fillRect(0, 0, width, height);
-        ctx.fillStyle = '#64748b';
-        ctx.font = '12px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('Нет данных', width / 2, height / 2);
-        return;
-      }
-      
-      // Очищаем canvas
-      ctx.clearRect(0, 0, width, height);
-      
-      // Вычисляем пропорции
-      const successRatio = success / total;
-      const failedRatio = failed / total;
-      
-      // Рисуем зеленую часть (успешные) снизу
-      if (success > 0) {
-        ctx.fillStyle = '#22c55e';
-        const successHeight = height * successRatio;
-        ctx.fillRect(0, height - successHeight, width, successHeight);
-      }
-      
-      // Рисуем красную часть (неуспешные) сверху
-      if (failed > 0) {
-        ctx.fillStyle = '#ef4444';
-        const failedHeight = height * failedRatio;
-        ctx.fillRect(0, 0, width, failedHeight);
-      }
-      
-      // Добавляем границу
-      ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(0, 0, width, height);
-      
-      // Добавляем текст с числами
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 11px Arial';
-      ctx.textAlign = 'center';
-      
-      if (success > 0) {
-        ctx.textBaseline = 'bottom';
-        ctx.fillText(String(success), width / 2, height - 4);
-      }
-      
-      if (failed > 0) {
-        ctx.textBaseline = 'top';
-        ctx.fillText(String(failed), width / 2, 16);
-      }
+      return stats;
     }
 
     /**
@@ -855,16 +1056,16 @@
     function calculateLast14DaysStats(systemName) {
       const today = new Date();
       const stats = [];
-      
+
       for (let i = 13; i >= 0; i--) {
         const date = new Date(today);
         date.setDate(date.getDate() - i);
         const key = toDataKey(date);
         const rec = dayToRecord.get(key);
-        
+
         let failedCount = 0;
         let hasData = false;
-        
+
         if (rec && Array.isArray(rec.stat)) {
           // Проверяем, есть ли данные для этой системы
           for (const stat of rec.stat) {
@@ -873,20 +1074,20 @@
               break;
             }
           }
-          
+
           // Считаем количество ошибок для этой системы
           if (hasData) {
             failedCount = computeFailedCountForSystem(rec, systemName);
           }
         }
-        
+
         stats.push({
           date: key,
           failedCount: failedCount,
           hasData: hasData
         });
       }
-      
+
       return stats;
     }
 
@@ -900,10 +1101,10 @@
       const width = canvas.width;
       const height = canvas.height;
       const stats = calculateLast14DaysStats(systemName);
-      
+
       // Очищаем canvas
       ctx.clearRect(0, 0, width, height);
-      
+
       if (stats.length === 0) {
         ctx.fillStyle = '#e5e7eb';
         ctx.fillRect(0, 0, width, height);
@@ -914,16 +1115,16 @@
         ctx.fillText('Нет данных', width / 2, height / 2);
         return;
       }
-      
+
       const barWidth = Math.floor((width - 2) / 14); // 14 дней, с небольшим отступом
       const barSpacing = 1;
       const effectiveBarWidth = barWidth - barSpacing;
-      
+
       for (let i = 0; i < stats.length; i++) {
         const stat = stats[i];
         const x = i * barWidth + 1;
         const barHeight = height - 2;
-        
+
         if (!stat.hasData) {
           // Нет данных - серый
           ctx.fillStyle = '#e5e7eb';
@@ -935,75 +1136,16 @@
           ctx.fillRect(x, 1, effectiveBarWidth, barHeight);
         }
       }
-      
+
       // Добавляем границу
       ctx.strokeStyle = 'rgba(0,0,0,0.1)';
       ctx.lineWidth = 1;
       ctx.strokeRect(0, 0, width, height);
     }
 
-    function updateStats() {
-      const stats = calculateMonthStats(currentYear, currentMonth);
-      statsList.innerHTML = '';
-      
-      if (stats.size === 0) {
-        statsList.innerHTML = '<div class="muted">Нет данных за выбранный месяц</div>';
-        return;
-      }
-      
-      // Сортируем системы по алфавиту
-      const sortedSystems = Array.from(stats.entries()).sort((a, b) => 
-        a[0].localeCompare(b[0], 'ru')
-      );
-      
-      for (const [systemName, systemStats] of sortedSystems) {
-        const item = document.createElement('div');
-        item.className = 'stat-item';
-        
-        const title = document.createElement('div');
-        title.className = 'stat-item-title';
-        title.textContent = systemName;
-        item.appendChild(title);
-        
-        const canvas = document.createElement('canvas');
-        canvas.className = 'stat-chart';
-        canvas.width = 280;
-        canvas.height = 120;
-        drawChart(canvas, systemStats.success, systemStats.failed);
-        item.appendChild(canvas);
-        
-        const legend = document.createElement('div');
-        legend.className = 'stat-legend';
-        
-        const successLegend = document.createElement('div');
-        successLegend.className = 'stat-legend-item';
-        const successColor = document.createElement('div');
-        successColor.className = 'stat-legend-color';
-        successColor.style.background = '#22c55e';
-        successLegend.appendChild(successColor);
-        successLegend.appendChild(document.createTextNode(`Успешных: ${systemStats.success}`));
-        legend.appendChild(successLegend);
-        
-        const failedLegend = document.createElement('div');
-        failedLegend.className = 'stat-legend-item';
-        const failedColor = document.createElement('div');
-        failedColor.className = 'stat-legend-color';
-        failedColor.style.background = '#ef4444';
-        failedLegend.appendChild(failedColor);
-        failedLegend.appendChild(document.createTextNode(`Неуспешных: ${systemStats.failed}`));
-        legend.appendChild(failedLegend);
-        
-        item.appendChild(legend);
-        statsList.appendChild(item);
-      }
-    }
-
-    // Инициализация обработчика кнопки статистики
-    statsToggleBtn.addEventListener('click', toggleStats);
-
     // Статистика (v2) — линейная диаграмма и информация о простоях
     const SYSTEM_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1', '#14b8a6', '#a855f7'];
-    
+
     /**
      * Возвращает успешные запросы по дням и системам за выбранный месяц.
      * @returns {Map<string, number[]>} systemName -> массив [день1, день2, ...] (индекс 0 = 1-е число)
@@ -1011,19 +1153,19 @@
     function calculateSuccessPerDayForMonth(year, monthIndex) {
       const daysInMonth = getDaysInMonth(year, monthIndex);
       const result = new Map();
-      
+
       for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(year, monthIndex, day);
         const key = toDataKey(date);
         const rec = dayToRecord.get(key);
-        
+
         if (!rec || !Array.isArray(rec.stat)) continue;
-        
+
         for (const s of rec.stat) {
           const systemName = s.system || 'Неизвестно';
           const isSuccess = successStatuses.has(String(s.status));
           const count = (s.count && typeof s.count === 'number') ? s.count : 1;
-          
+
           if (!result.has(systemName)) {
             result.set(systemName, new Array(daysInMonth).fill(0));
           }
@@ -1033,10 +1175,10 @@
           }
         }
       }
-      
+
       return result;
     }
-    
+
     /**
      * Вычисляет интервалы простоя для системы.
      * Интервал: неуспешная проверка = начало, последующая успешная = конец.
@@ -1047,15 +1189,15 @@
       const intervals = [];
       let inDowntime = false;
       let intervalStart = null;
-      
+
       for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(year, monthIndex, day);
         const key = toDataKey(date);
         const rec = dayToRecord.get(key);
-        
+
         let successCount = 0;
         let failedCount = 0;
-        
+
         if (rec && Array.isArray(rec.stat)) {
           for (const s of rec.stat) {
             if (s.system !== systemName) continue;
@@ -1067,7 +1209,7 @@
             }
           }
         }
-        
+
         if (failedCount > 0 && !inDowntime) {
           inDowntime = true;
           intervalStart = key;
@@ -1081,7 +1223,7 @@
           inDowntime = false;
         }
       }
-      
+
       if (inDowntime && intervalStart) {
         const lastKey = toDataKey(new Date(year, monthIndex, daysInMonth));
         const startDate = parseRuDate(intervalStart);
@@ -1089,10 +1231,10 @@
         const days = Math.max(1, Math.round((endDateParsed - startDate) / (24 * 60 * 60 * 1000)) + 1);
         intervals.push({ start: intervalStart, end: lastKey, days });
       }
-      
+
       return intervals;
     }
-    
+
     /**
      * Рисует линейную диаграмму: X = дни месяца, Y = успешные запросы, серия = система.
      */
@@ -1103,9 +1245,9 @@
       const padding = { top: 20, right: 20, bottom: 40, left: 50 };
       const chartWidth = width - padding.left - padding.right;
       const chartHeight = height - padding.top - padding.bottom;
-      
+
       ctx.clearRect(0, 0, width, height);
-      
+
       const systems = Array.from(successPerDay.keys()).sort((a, b) => a.localeCompare(b, 'ru'));
       if (systems.length === 0) {
         ctx.fillStyle = '#64748b';
@@ -1115,7 +1257,7 @@
         ctx.fillText('Нет данных за выбранный месяц', width / 2, height / 2);
         return;
       }
-      
+
       let maxY = 0;
       for (const sys of systems) {
         const arr = successPerDay.get(sys);
@@ -1124,10 +1266,10 @@
         }
       }
       if (maxY === 0) maxY = 1;
-      
+
       const stepX = chartWidth / Math.max(1, daysInMonth - 1);
       const scaleY = chartHeight / maxY;
-      
+
       ctx.strokeStyle = 'rgba(0,0,0,0.1)';
       ctx.lineWidth = 1;
       ctx.beginPath();
@@ -1135,7 +1277,7 @@
       ctx.lineTo(padding.left, padding.top + chartHeight);
       ctx.lineTo(padding.left + chartWidth, padding.top + chartHeight);
       ctx.stroke();
-      
+
       ctx.fillStyle = '#334155';
       ctx.font = '11px Arial';
       ctx.textAlign = 'right';
@@ -1143,12 +1285,12 @@
         const x = padding.left + (d - 1) * stepX;
         ctx.fillText(String(d), x, padding.top + chartHeight + 14);
       }
-      
+
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
       ctx.fillText('0', padding.left - 6, padding.top + chartHeight);
       ctx.fillText(String(maxY), padding.left - 6, padding.top);
-      
+
       systems.forEach((systemName, idx) => {
         const color = SYSTEM_COLORS[idx % SYSTEM_COLORS.length];
         const arr = successPerDay.get(systemName);
@@ -1169,20 +1311,20 @@
         }
         ctx.stroke();
       });
-      
+
       return systems;
     }
-    
+
     function openStatsV2Modal() {
       const monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
       statsV2ModalTitle.textContent = `Статистика (v2) — ${monthNames[currentMonth]} ${currentYear}`;
-      
+
       const daysInMonth = getDaysInMonth(currentYear, currentMonth);
       const successPerDay = calculateSuccessPerDayForMonth(currentYear, currentMonth);
       const monthStats = calculateMonthStats(currentYear, currentMonth);
-      
+
       const systems = drawLineChartStatsV2(statsV2LineChart, successPerDay, daysInMonth) || [];
-      
+
       statsV2ChartLegend.innerHTML = '';
       systems.forEach((systemName, idx) => {
         const wrap = document.createElement('div');
@@ -1199,30 +1341,30 @@
         wrap.appendChild(label);
         statsV2ChartLegend.appendChild(wrap);
       });
-      
+
       statsV2SystemsInfo.innerHTML = '';
       for (const systemName of systems) {
         const stats = monthStats.get(systemName) || { success: 0, failed: 0 };
         const total = stats.success + stats.failed;
         const percentSuccess = total > 0 ? ((stats.success / total) * 100).toFixed(1) : '0';
         const intervals = calculateDowntimeIntervalsForSystem(currentYear, currentMonth, systemName);
-        
+
         const card = document.createElement('div');
         card.className = 'card';
         card.style.padding = '12px';
-        
+
         const title = document.createElement('div');
         title.className = 'stat-item-title';
         title.textContent = systemName;
         title.style.marginBottom = '8px';
         card.appendChild(title);
-        
+
         const percentEl = document.createElement('div');
         percentEl.style.fontSize = '13px';
         percentEl.style.marginBottom = '6px';
         percentEl.innerHTML = `<strong>Успешных запросов:</strong> ${percentSuccess}% (${stats.success} из ${total})`;
         card.appendChild(percentEl);
-        
+
         const downtimeEl = document.createElement('div');
         downtimeEl.style.fontSize = '12px';
         downtimeEl.style.color = '#64748b';
@@ -1233,21 +1375,21 @@
           downtimeEl.innerHTML = `<strong>Недоступность:</strong><br>${parts.join('<br>')}`;
         }
         card.appendChild(downtimeEl);
-        
+
         statsV2SystemsInfo.appendChild(card);
       }
-      
+
       if (systems.length === 0) {
         statsV2SystemsInfo.innerHTML = '<div class="muted">Нет данных за выбранный месяц</div>';
       }
-      
+
       statsV2Modal.classList.remove('hidden');
     }
-    
+
     function closeStatsV2ModalHandler() {
       statsV2Modal.classList.add('hidden');
     }
-    
+
     statsV2Btn.addEventListener('click', openStatsV2Modal);
     closeStatsV2Modal.addEventListener('click', closeStatsV2ModalHandler);
     statsV2Modal.addEventListener('click', (e) => {
@@ -1268,14 +1410,14 @@
       pingModal.classList.add('hidden');
       pingResult.classList.add('hidden');
       currentPingItemElement = null;
-      
+
       // Удаляем обработчик прокрутки
       if (scrollSyncHandler) {
         const modalBody = pingModal.querySelector('.modal-body');
         modalBody.removeEventListener('scroll', scrollSyncHandler);
         scrollSyncHandler = null;
       }
-      
+
       // Удаляем обработчик изменения размера окна
       if (resizeSyncHandler) {
         window.removeEventListener('resize', resizeSyncHandler);
@@ -1285,44 +1427,44 @@
 
     async function loadSystemsList() {
       pingSystemsList.innerHTML = '<div class="muted">Загрузка списка систем...</div>';
-      
+
       try {
         const response = await fetch(PING_SYSTEMS_URL);
         if (!response.ok) {
           throw new Error(`Ошибка загрузки: ${response.status} ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         const systems = data.systems || [];
-        
+
         if (systems.length === 0) {
           pingSystemsList.innerHTML = '<div class="muted">Список систем пуст. Добавьте системы в базу данных.</div>';
           return;
         }
-        
+
         pingSystemsList.innerHTML = '';
         for (const systemName of systems) {
           const item = document.createElement('div');
           item.className = 'ping-system-item';
-          
+
           const content = document.createElement('div');
           content.className = 'ping-system-item-content';
-          
+
           const name = document.createElement('div');
           name.className = 'ping-system-item-name';
           name.textContent = systemName;
-          
+
           const chartCanvas = document.createElement('canvas');
           chartCanvas.className = 'ping-system-chart';
           chartCanvas.width = 200;
           chartCanvas.height = 40;
           drawBarChart14Days(chartCanvas, systemName);
-          
+
           const pingButton = document.createElement('button');
           pingButton.className = 'ping-btn-item';
           pingButton.textContent = 'Проверить';
           pingButton.onclick = () => executePing(systemName, pingButton, item);
-          
+
           content.appendChild(chartCanvas);
           content.appendChild(name);
           item.appendChild(content);
@@ -1343,13 +1485,13 @@
       // Блокируем кнопку
       button.disabled = true;
       button.textContent = 'Идет проверка';
-      
+
       // Сохраняем ссылку на элемент системы
       currentPingItemElement = itemElement;
-      
+
       // Скрываем предыдущий результат
       pingResult.classList.add('hidden');
-      
+
       try {
         const response = await fetch(PING_EXECUTE_URL, {
           method: 'POST',
@@ -1358,7 +1500,7 @@
           },
           body: JSON.stringify({ systemName: systemName })
         });
-        
+
         const data = await response.json();
         showPingResult(data, itemElement);
       } catch (error) {
@@ -1381,7 +1523,7 @@
       if (!content || content.trim() === '') {
         return '(пусто)';
       }
-      
+
       // Пытаемся определить, является ли содержимое JSON
       try {
         const parsed = JSON.parse(content);
@@ -1415,28 +1557,28 @@
     function createSpoiler(title, content) {
       const spoiler = document.createElement('div');
       spoiler.className = 'ping-result-spoiler';
-      
+
       const header = document.createElement('div');
       header.className = 'ping-result-spoiler-header';
-      
+
       const icon = document.createElement('span');
       icon.className = 'ping-result-spoiler-icon';
       icon.textContent = '▶';
-      
+
       const titleSpan = document.createElement('span');
       titleSpan.textContent = title;
-      
+
       header.appendChild(icon);
       header.appendChild(titleSpan);
-      
+
       const spoilerContent = document.createElement('div');
       spoilerContent.className = 'ping-result-spoiler-content';
-      
+
       const body = document.createElement('div');
       body.className = 'ping-result-spoiler-body';
       body.textContent = formatBody(content);
       spoilerContent.appendChild(body);
-      
+
       header.addEventListener('click', () => {
         const isExpanded = spoilerContent.classList.contains('expanded');
         if (isExpanded) {
@@ -1447,10 +1589,10 @@
           icon.classList.add('expanded');
         }
       });
-      
+
       spoiler.appendChild(header);
       spoiler.appendChild(spoilerContent);
-      
+
       return spoiler;
     }
 
@@ -1477,83 +1619,83 @@
 
     function showPingResult(result, itemElement) {
       pingResult.classList.remove('hidden');
-      
+
       // Определяем класс стиля на основе результата
       const status = classifyPingResult(result);
       const resultClass = `ping-result-${status}`;
-      
+
       pingResult.className = `ping-result ${resultClass}`;
-      
+
       const title = document.createElement('div');
       title.className = 'ping-result-title';
       title.textContent = `Результат проверки: ${result.systemName || 'Неизвестная система'}`;
-      
+
       const details = document.createElement('div');
       details.className = 'ping-result-details';
-      
+
       if (result.fullSystemName) {
         const fullNameRow = document.createElement('div');
         fullNameRow.className = 'ping-result-row';
         fullNameRow.innerHTML = `<span class="ping-result-label">Полное название:</span> <span>${result.fullSystemName}</span>`;
         details.appendChild(fullNameRow);
       }
-      
+
       if (result.httpCode !== undefined && result.httpCode !== null) {
         const httpRow = document.createElement('div');
         httpRow.className = 'ping-result-row';
         httpRow.innerHTML = `<span class="ping-result-label">HTTP код:</span> <span>${result.httpCode}</span>`;
         details.appendChild(httpRow);
       }
-      
+
       if (result.statusCode) {
         const statusRow = document.createElement('div');
         statusRow.className = 'ping-result-row';
         statusRow.innerHTML = `<span class="ping-result-label">Статус код:</span> <span>${result.statusCode}</span>`;
         details.appendChild(statusRow);
       }
-      
+
       if (result.message) {
         const messageRow = document.createElement('div');
         messageRow.className = 'ping-result-row';
         messageRow.innerHTML = `<span class="ping-result-label">Сообщение:</span> <span>${result.message}</span>`;
         details.appendChild(messageRow);
       }
-      
+
       pingResult.innerHTML = '';
       pingResult.appendChild(title);
       pingResult.appendChild(details);
-      
+
       // Добавляем информацию о шагах, если она есть
       if (result.steps && Array.isArray(result.steps) && result.steps.length > 0) {
         const stepsSection = document.createElement('div');
         stepsSection.className = 'ping-result-steps';
-        
+
         const stepsTitle = document.createElement('div');
         stepsTitle.className = 'ping-result-steps-title';
         stepsTitle.textContent = 'Шаги выполнения:';
         stepsSection.appendChild(stepsTitle);
-        
+
         const stepsList = document.createElement('div');
         stepsList.className = 'ping-result-steps-list';
-        
+
         result.steps.forEach((step, index) => {
           const stepItem = document.createElement('div');
           stepItem.className = 'ping-result-step-item';
-          
+
           if (step.step) {
             const stepRow = document.createElement('div');
             stepRow.className = 'ping-result-step-row';
             stepRow.innerHTML = `<span class="ping-result-step-label">Шаг:</span> <span>${step.step}</span>`;
             stepItem.appendChild(stepRow);
           }
-          
+
           if (step.status) {
             const statusRow = document.createElement('div');
             statusRow.className = 'ping-result-step-row';
             statusRow.innerHTML = `<span class="ping-result-step-label">Статус:</span> <span>${step.status}</span>`;
             stepItem.appendChild(statusRow);
           }
-          
+
           if (step.httpCode) {
             const httpCodeRow = document.createElement('div');
             httpCodeRow.className = 'ping-result-step-row';
@@ -1579,71 +1721,71 @@
             urlRow.appendChild(urlLink);
             stepItem.appendChild(urlRow);
           }
-          
+
           // Добавляем спойлер для тела запроса, если оно есть
           if (step.requestBody) {
             const requestSpoiler = createSpoiler('Тело запроса', step.requestBody);
             stepItem.appendChild(requestSpoiler);
           }
-          
+
           // Добавляем спойлер для тела ответа, если оно есть
           if (step.responseBody) {
             const responseSpoiler = createSpoiler('Тело ответа', step.responseBody);
             stepItem.appendChild(responseSpoiler);
           }
-          
+
           stepsList.appendChild(stepItem);
         });
-        
+
         stepsSection.appendChild(stepsList);
         pingResult.appendChild(stepsSection);
       }
-      
+
       // Прокручиваем элемент системы в видимую область
       itemElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      
+
       // Синхронизируем позицию результата с элементом системы
       // Используем setTimeout чтобы дождаться завершения scrollIntoView
       setTimeout(() => {
         syncResultPosition(itemElement);
       }, 100);
-      
+
       // Удаляем предыдущий обработчик прокрутки, если он есть
       if (scrollSyncHandler) {
         const modalBody = pingModal.querySelector('.modal-body');
         modalBody.removeEventListener('scroll', scrollSyncHandler);
       }
-      
+
       // Добавляем обработчик прокрутки для синхронизации позиции
       const modalBody = pingModal.querySelector('.modal-body');
       scrollSyncHandler = () => syncResultPosition(itemElement);
       modalBody.addEventListener('scroll', scrollSyncHandler);
-      
+
       // Удаляем предыдущий обработчик изменения размера окна, если он есть
       if (resizeSyncHandler) {
         window.removeEventListener('resize', resizeSyncHandler);
       }
-      
+
       // Добавляем обработчик изменения размера окна для обновления синхронизации
       resizeSyncHandler = () => syncResultPosition(itemElement);
       window.addEventListener('resize', resizeSyncHandler);
     }
-    
+
     function syncResultPosition(itemElement) {
       if (!itemElement) return;
-      
+
       const modalBody = pingModal.querySelector('.modal-body');
       const pingResultContainer = document.querySelector('.ping-result-container');
-      
+
       const itemRect = itemElement.getBoundingClientRect();
       const modalBodyRect = modalBody.getBoundingClientRect();
       const containerRect = pingResultContainer.getBoundingClientRect();
-      
+
       // Вычисляем позицию элемента относительно видимой области modalBody
       // и выравниваем результат точно с верхней границей элемента системы
       const relativeTop = itemRect.top - containerRect.top;
       pingResult.style.top = `${relativeTop}px`;
-      
+
       // Устанавливаем минимальную высоту контейнера результата равной высоте результата
       // чтобы модальное окно могло расширяться по высоте
       const resultHeight = pingResult.offsetHeight;
@@ -1653,12 +1795,12 @@
         // и был синхронизирован с высотой элемента системы
         pingResultContainer.style.minHeight = `${Math.max(resultHeight, itemHeight)}px`;
       }
-      
+
       // Убеждаемся, что результат виден - прокручиваем модальное окно если нужно
       const modalContent = pingModal.querySelector('.modal-content');
       const resultBottom = containerRect.top + Math.max(resultHeight, itemHeight);
       const viewportHeight = window.innerHeight;
-      
+
       // Если результат находится внизу и может быть не виден,
       // прокручиваем модальное окно так, чтобы он был виден
       if (resultBottom > viewportHeight - 50) {
@@ -1677,14 +1819,14 @@
     // Инициализация обработчиков для модального окна проверки
     pingToggleBtn.addEventListener('click', pingToggleStats);
     closePingModal.addEventListener('click', closePingModalHandler);
-    
+
     // Закрытие модального окна при клике на overlay
     pingModal.addEventListener('click', (e) => {
       if (e.target === pingModal) {
         closePingModalHandler();
       }
     });
-    
+
     // Закрытие модального окна по Escape
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && !pingModal.classList.contains('hidden')) {
@@ -1710,45 +1852,45 @@
 
     async function loadAndPingAllSystems() {
       pingAllGrid.innerHTML = '<div class="muted">Загрузка списка систем...</div>';
-      
+
       try {
         const response = await fetch(PING_SYSTEMS_URL);
         if (!response.ok) {
           throw new Error(`Ошибка загрузки: ${response.status} ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         const systems = data.systems || [];
-        
+
         if (systems.length === 0) {
           pingAllGrid.innerHTML = '<div class="muted">Список систем пуст. Добавьте системы в базу данных.</div>';
           return;
         }
-        
+
         // Создаем прямоугольники для каждой системы
         pingAllGrid.innerHTML = '';
         const systemItems = new Map();
-        
+
         for (const systemName of systems) {
           const item = document.createElement('div');
           item.className = 'ping-all-item loading';
           item.setAttribute('data-system', systemName);
           item.title = systemName; // Tooltip
-          
+
           const name = document.createElement('div');
           name.className = 'ping-all-item-name';
           name.textContent = systemName;
           item.appendChild(name);
-          
+
           pingAllGrid.appendChild(item);
           systemItems.set(systemName, item);
         }
-        
+
         // Запускаем одновременную проверку всех систем
-        const pingPromises = systems.map(systemName => 
+        const pingPromises = systems.map(systemName =>
           pingSingleSystem(systemName, systemItems.get(systemName))
         );
-        
+
         await Promise.allSettled(pingPromises);
       } catch (error) {
         console.error('Ошибка загрузки списка систем:', error);
@@ -1765,7 +1907,7 @@
           },
           body: JSON.stringify({ systemName: systemName })
         });
-        
+
         const data = await response.json();
         updatePingAllItem(itemElement, data);
       } catch (error) {
@@ -1783,12 +1925,12 @@
     function updatePingAllItem(itemElement, result) {
       // Убираем класс loading
       itemElement.classList.remove('loading');
-      
+
       // Определяем класс стиля на основе результата
       const resultClass = classifyPingResult(result);
-      
+
       itemElement.classList.add(resultClass);
-      
+
       // Обновляем tooltip с дополнительной информацией
       let tooltipText = result.systemName || 'Неизвестная система';
       if (result.fullSystemName) {
@@ -1809,7 +1951,7 @@
     // Инициализация обработчиков для модального окна массовой проверки
     pingAllBtn.addEventListener('click', pingAllToggle);
     closePingAllModal.addEventListener('click', closePingAllModalHandler);
-    
+
     // Закрытие модального окна при клике на overlay
     pingAllModal.addEventListener('click', (e) => {
       if (e.target === pingAllModal) {
