@@ -1312,11 +1312,31 @@
 
     function openStatsV2Modal() {
       const monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
-      statsV2ModalTitle.textContent = `Статистика (v2) — ${monthNames[currentMonth]} ${currentYear}`;
+      const filterSystem = systemFilterSelect.value;
+
+      if (filterSystem === 'ALL') {
+        statsV2ModalTitle.textContent = `Статистика (v2) — ${monthNames[currentMonth]} ${currentYear}`;
+      } else {
+        statsV2ModalTitle.textContent = `Статистика (v2) — ${monthNames[currentMonth]} ${currentYear} — ${filterSystem}`;
+      }
 
       const daysInMonth = getDaysInMonth(currentYear, currentMonth);
-      const successPerDay = calculateSuccessPerDayForMonth(currentYear, currentMonth);
-      const monthStats = calculateMonthStats(currentYear, currentMonth);
+      let successPerDay = calculateSuccessPerDayForMonth(currentYear, currentMonth);
+      let monthStats = calculateMonthStats(currentYear, currentMonth);
+
+      if (filterSystem !== 'ALL') {
+        const filteredSuccess = new Map();
+        if (successPerDay.has(filterSystem)) {
+          filteredSuccess.set(filterSystem, successPerDay.get(filterSystem));
+        }
+        successPerDay = filteredSuccess;
+
+        const filteredStats = new Map();
+        if (monthStats.has(filterSystem)) {
+          filteredStats.set(filterSystem, monthStats.get(filterSystem));
+        }
+        monthStats = filteredStats;
+      }
 
       const systems = drawLineChartStatsV2(statsV2LineChart, successPerDay, daysInMonth) || [];
 
