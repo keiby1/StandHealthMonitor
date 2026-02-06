@@ -1,12 +1,7 @@
 package com.example.StandHealthMonitor.service;
 
-import com.example.StandHealthMonitor.dto.OperStatPbj;
 import com.example.StandHealthMonitor.dto.PingResponse;
-import com.example.StandHealthMonitor.dto.RsStatObj;
 import org.springframework.stereotype.Service;
-
-import java.util.LinkedList;
-import java.util.List;
 
 /**
  * Реализация интерфейса SystemPingService.
@@ -43,34 +38,34 @@ public class SystemPingServiceImpl implements SystemPingService {
 
         switch (systemName) {
             case "A1": {
-                return new ExamplePeriodicTask1().execute();
+                return new A1().execute();
             }
             case "A2": {
-                return new ExamplePeriodicTask2().execute();
+                return new A2().execute();
             }
             case "A3": {
-                return new ExamplePeriodicTask3().execute();
+                return new A3().execute();
             }
             case "A4": {
-                return new ExamplePeriodicTask4().execute();
+                return new A4().execute();
             }
             case "A5": {
-                return new ExamplePeriodicTask5().execute();
+                return new A5().execute();
             }
             case "A6": {
-                return new ExamplePeriodicTask6().execute();
+                return new A6().execute();
             }
             case "A7": {
-                return new ExamplePeriodicTask7().execute();
+                return new A7().execute();
             }
             case "A8": {
-                return new ExamplePeriodicTask8().execute();
+                return new A8().execute();
             }
             case "A9": {
-                return new ExamplePeriodicTask9().execute();
+                return new A9().execute();
             }
             case "B1": {
-                return new ExamplePeriodicTask10().execute();
+                return new A10().execute();
             }
             default:
                 return null;

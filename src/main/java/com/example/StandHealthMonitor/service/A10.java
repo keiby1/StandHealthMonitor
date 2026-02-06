@@ -2,7 +2,6 @@ package com.example.StandHealthMonitor.service;
 
 import com.example.StandHealthMonitor.dto.OperStatPbj;
 import com.example.StandHealthMonitor.dto.PingResponse;
-import com.example.StandHealthMonitor.dto.RsStatObj;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedList;
@@ -17,7 +16,7 @@ import java.util.List;
  * автоматически зарегистрировал ваш класс.
  */
 @Component
-public class ExamplePeriodicTask10 implements PeriodicTask {
+public class A10 implements PeriodicTask {
     
     @Override
     public PingResponse execute() {

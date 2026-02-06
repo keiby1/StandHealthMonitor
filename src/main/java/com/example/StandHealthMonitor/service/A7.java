@@ -1,12 +1,7 @@
 package com.example.StandHealthMonitor.service;
 
-import com.example.StandHealthMonitor.dto.OperStatPbj;
 import com.example.StandHealthMonitor.dto.PingResponse;
-import com.example.StandHealthMonitor.dto.RsStatObj;
 import org.springframework.stereotype.Component;
-
-import java.util.LinkedList;
-import java.util.List;
 
 /**
  * Пример реализации интерфейса PeriodicTask.
@@ -17,19 +12,12 @@ import java.util.List;
  * автоматически зарегистрировал ваш класс.
  */
 @Component
-public class ExamplePeriodicTask2 implements PeriodicTask {
+public class A7 implements PeriodicTask {
     
     @Override
     public PingResponse execute() {
         System.out.println("Пример периодической задачи выполнен");
-
-        List<OperStatPbj> list = new LinkedList<>();
-        list.add(new OperStatPbj("Step1", "0", "200", "{ \"rq\":\"123\", \"dsa\":\"sdfsdf\"}",
-                "{\"rs\":\"sdfgdsf\", \"asdf\":\"asdfsdaf\"}", "http://localhost:8080"));
-        list.add(new OperStatPbj("Step2", "0", "200","{ \"rq\":\"333\", \"ds424a\":\"3333\"}",
-                "{\"rs\":\"1111\", \"asdf\":\"2222\"}", "http://localhost:8080/v2/api/test"));
-
-        return new PingResponse("A2", 200, "-1", "sadewqesad", true, list);
+        return new PingResponse("A7", 200, "0", "Все ок", true);
     }
 }
 

@@ -2,7 +2,6 @@ package com.example.StandHealthMonitor.service;
 
 import com.example.StandHealthMonitor.dto.OperStatPbj;
 import com.example.StandHealthMonitor.dto.PingResponse;
-import com.example.StandHealthMonitor.dto.RsStatObj;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedList;
@@ -17,23 +16,19 @@ import java.util.List;
  * автоматически зарегистрировал ваш класс.
  */
 @Component
-public class ExamplePeriodicTask9 implements PeriodicTask {
+public class A2 implements PeriodicTask {
     
     @Override
     public PingResponse execute() {
         System.out.println("Пример периодической задачи выполнен");
 
-        String rq1 = "{\"Rq\":\"123\"}";
-        String rs1 = "{\"Rs\":\"qwe\"}";
-        String rq2 = "{\"Rs\":\"213543605860948796578\"}";
-        String rs2 = "{\"Rs\":\"fksdalfbksabf\"}";
-
-
         List<OperStatPbj> list = new LinkedList<>();
-        list.add(new OperStatPbj("Step1", "0", "200", rq1, rs1));
-        list.add(new OperStatPbj("Step2", "-1", "500", rq2, rs2));
+        list.add(new OperStatPbj("Step1", "0", "200", "{ \"rq\":\"123\", \"dsa\":\"sdfsdf\"}",
+                "{\"rs\":\"sdfgdsf\", \"asdf\":\"asdfsdaf\"}", "http://localhost:8080"));
+        list.add(new OperStatPbj("Step2", "0", "200","{ \"rq\":\"333\", \"ds424a\":\"3333\"}",
+                "{\"rs\":\"1111\", \"asdf\":\"2222\"}", "http://localhost:8080/v2/api/test"));
 
-        return new PingResponse("A9", 500, "-1", "Все ок", false, list);
+        return new PingResponse("A2", 200, "-1", "sadewqesad", true, list);
     }
 }
 
