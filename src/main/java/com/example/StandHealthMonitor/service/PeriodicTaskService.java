@@ -19,6 +19,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 @Component
+@org.springframework.context.annotation.DependsOn("templatesHolder")
 public class PeriodicTaskService {
     private ScheduledExecutorService scheduler;
     
