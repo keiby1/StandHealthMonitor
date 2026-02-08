@@ -2,36 +2,30 @@ package com.example.StandHealthMonitor.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.annotation.Order;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
-import org.springframework.stereotype.Component;
 import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
-import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Загружает при старте приложения все JSON-файлы из classpath:templates/{названиеСистемы}/{названиеШага}.json,
+ * Загружает при загрузке класса все JSON-файлы из classpath:templates/{названиеСистемы}/{названиеШага}.json,
  * сохраняет их в памяти и отдаёт по запросу без повторного чтения с диска.
  * <p>
- * Инициализация выполняется до {@link PeriodicTaskService} за счёт {@code @DependsOn("templatesHolder")}.
+ * Инициализация выполняется в статическом блоке при первом обращении к классу — до вызова методов любых
+ * Spring-бинов (в т.ч. {@link PeriodicTaskService} и задач {@link PeriodicTask}).
  * <p>
- * Пример использования в классе системы:
+ * Пример использования в классе системы (без @Autowired):
  * <pre>
- * &#64;Autowired
- * private TemplatesHolder templatesHolder;
- *
- * String json = templatesHolder.getTemplate("A1", "prep");  // содержимое templates/A1/prep.json
+ * String json = TemplatesHolder.getTemplate("A1", "prep");  // содержимое templates/A1/prep.json
  * </pre>
  */
-@Component("templatesHolder")
-@Order(Integer.MIN_VALUE)
-public class TemplatesHolder {
+public final class TemplatesHolder {
 
     private static final String TEMPLATES_PATTERN = "classpath*:templates/*/*.json";
     private static final Logger log = LoggerFactory.getLogger(TemplatesHolder.class);
@@ -40,10 +34,17 @@ public class TemplatesHolder {
      * systemName -> (stepName -> содержимое JSON как строка).
      * stepName — имя файла без расширения .json.
      */
-    private final Map<String, Map<String, String>> templatesBySystem = new HashMap<>();
+    private static final Map<String, Map<String, String>> templatesBySystem = new HashMap<>();
 
-    @PostConstruct
-    public void loadTemplates() {
+    static {
+        loadTemplates();
+    }
+
+    private TemplatesHolder() {
+        // запрет создания экземпляров
+    }
+
+    private static void loadTemplates() {
         PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
         try {
             Resource[] resources = resolver.getResources(TEMPLATES_PATTERN);
@@ -53,9 +54,11 @@ public class TemplatesHolder {
                 String stepName = null;
                 try {
                     String path = resource.getURI().toString();
+                    // Support both forward and backslash (Windows)
                     int idx = path.indexOf("templates/");
+                    if (idx < 0) idx = path.indexOf("templates\\");
                     if (idx < 0) continue;
-                    String relative = path.substring(idx + "templates/".length());
+                    String relative = path.substring(idx + "templates/".length()).replace('\\', '/');
                     int slash = relative.indexOf('/');
                     if (slash < 0) continue;
                     systemName = relative.substring(0, slash);
@@ -66,7 +69,7 @@ public class TemplatesHolder {
                         continue;
                     }
                 } catch (Exception e) {
-                    log.warn("Не удалось разобрать путь ресурса: {}", resource.getDescription(), e);
+                    log.warn("Failed to parse resource path: {}", resource.getDescription(), e);
                     continue;
                 }
                 String content = readResource(resource);
@@ -76,11 +79,11 @@ public class TemplatesHolder {
                             .put(stepName, content);
                 }
             }
-            log.info("Загружено шаблонов: {} систем, всего файлов: {}",
-                    templatesBySystem.size(),
-                    templatesBySystem.values().stream().mapToInt(Map::size).sum());
+            int totalFiles = templatesBySystem.values().stream().mapToInt(Map::size).sum();
+            log.info("Loaded templates: {} systems, {} files total",
+                    templatesBySystem.size(), totalFiles);
         } catch (IOException e) {
-            log.error("Ошибка сканирования шаблонов по шаблону {}", TEMPLATES_PATTERN, e);
+            log.error("Failed to scan templates with pattern {}", TEMPLATES_PATTERN, e);
         }
     }
 
@@ -90,7 +93,7 @@ public class TemplatesHolder {
      * @param systemName название системы (папка в templates/)
      * @param stepName   название шага (имя файла без .json)
      */
-    public String getTemplate(String systemName, String stepName) {
+    public static String getTemplate(String systemName, String stepName) {
         if (systemName == null || stepName == null) return null;
         Map<String, String> steps = templatesBySystem.get(systemName);
         return steps != null ? steps.get(stepName) : null;
@@ -99,13 +102,13 @@ public class TemplatesHolder {
     /**
      * Все загруженные шаблоны: systemName -> (stepName -> json string).
      */
-    public Map<String, Map<String, String>> getAllTemplates() {
+    public static Map<String, Map<String, String>> getAllTemplates() {
         Map<String, Map<String, String>> copy = new HashMap<>();
         templatesBySystem.forEach((sys, steps) -> copy.put(sys, new HashMap<>(steps)));
-        return copy;
+        return Collections.unmodifiableMap(copy);
     }
 
-    private String readResource(Resource resource) {
+    private static String readResource(Resource resource) {
         try (Reader r = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8)) {
             StringBuilder sb = new StringBuilder();
             char[] buf = new char[2048];
@@ -115,7 +118,7 @@ public class TemplatesHolder {
             }
             return sb.toString();
         } catch (IOException e) {
-            log.warn("Ошибка чтения шаблона {}: {}", resource.getDescription(), e.getMessage());
+            log.warn("Failed to read template {}: {}", resource.getDescription(), e.getMessage());
             return null;
         }
     }

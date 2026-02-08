@@ -17,7 +17,7 @@ public class A6 implements PeriodicTask {
     @Override
     public PingResponse execute() {
         System.out.println("Пример периодической задачи выполнен");
-        return new PingResponse("A6", 200,  "NOT_IMPLEMENTED", "Метод ping() не реализован. Пожалуйста, реализуйте его в SystemPingServiceImpl", false);
+        return new PingResponse("A6", 200,  "-123", "Метод ping() не реализован. Пожалуйста, реализуйте его в SystemPingServiceImpl", false);
     }
 }
 

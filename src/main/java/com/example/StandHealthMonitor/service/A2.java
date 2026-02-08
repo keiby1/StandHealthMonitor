@@ -23,9 +23,9 @@ public class A2 implements PeriodicTask {
         System.out.println("Пример периодической задачи выполнен");
 
         List<OperStatPbj> list = new LinkedList<>();
-        list.add(new OperStatPbj("Step1", "0", "200", "{ \"rq\":\"123\", \"dsa\":\"sdfsdf\"}",
+        list.add(new OperStatPbj("Step1", "0", "200", TemplatesHolder.getTemplate("A2", "Step1"),
                 "{\"rs\":\"sdfgdsf\", \"asdf\":\"asdfsdaf\"}", "http://localhost:8080"));
-        list.add(new OperStatPbj("Step2", "0", "200","{ \"rq\":\"333\", \"ds424a\":\"3333\"}",
+        list.add(new OperStatPbj("Step2", "0", "200",TemplatesHolder.getTemplate("A2", "Step2"),
                 "{\"rs\":\"1111\", \"asdf\":\"2222\"}", "http://localhost:8080/v2/api/test"));
 
         return new PingResponse("A2", 200, "-1", "sadewqesad", true, list);
