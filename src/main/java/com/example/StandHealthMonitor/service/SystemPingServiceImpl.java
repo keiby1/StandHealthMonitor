@@ -37,6 +37,9 @@ public class SystemPingServiceImpl implements SystemPingService {
     public PingResponse ping(String systemName) {
 
         switch (systemName) {
+            case "A0": {
+                return new A0().execute();
+            }
             case "A1": {
                 return new A1().execute();
             }
@@ -64,8 +67,38 @@ public class SystemPingServiceImpl implements SystemPingService {
             case "A9": {
                 return new A9().execute();
             }
+            case "A11": {
+                return new A11().execute();
+            }
+            case "A12": {
+                return new A12().execute();
+            }
+            case "A13": {
+                return new A13().execute();
+            }
+            case "A14": {
+                return new A14().execute();
+            }
+            case "A15": {
+                return new A15().execute();
+            }
+            case "A16": {
+                return new A16().execute();
+            }
+            case "A17": {
+                return new A17().execute();
+            }
+            case "A18": {
+                return new A18().execute();
+            }
+            case "A19": {
+                return new A19().execute();
+            }
+            case "A20": {
+                return new A20().execute();
+            }
             case "B1": {
-                return new A10().execute();
+                return new B1().execute();
             }
             default:
                 return null;

@@ -14,7 +14,7 @@ import java.util.Map;
  * автоматически зарегистрировал ваш класс.
  */
 @Component
-public class A1 implements PeriodicTask {
+public class A12 implements PeriodicTask {
 
     @Override
     public PingResponse execute() {
@@ -25,7 +25,7 @@ public class A1 implements PeriodicTask {
         System.out.println(rqJson);
 
         System.out.println("Пример периодической задачи выполнен");
-        return new PingResponse("A1", "System A", 200, "200", "Все ок", true);
+        return new PingResponse("A12", "System A", 200, "200", "Все ок", true);
     }
 }
 

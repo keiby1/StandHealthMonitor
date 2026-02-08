@@ -17,12 +17,18 @@ import java.util.Map;
  * Загружает при загрузке класса все JSON-файлы из classpath:templates/{названиеСистемы}/{названиеШага}.json,
  * сохраняет их в памяти и отдаёт по запросу без повторного чтения с диска.
  * <p>
- * Инициализация выполняется в статическом блоке при первом обращении к классу — до вызова методов любых
- * Spring-бинов (в т.ч. {@link PeriodicTaskService} и задач {@link PeriodicTask}).
+ * Поддерживает параметризацию: в JSON используйте {@code ${var}} для подстановки значений.
+ * Ключи {@code system} и {@code step} подставляются автоматически.
  * <p>
- * Пример использования в классе системы (без @Autowired):
+ * Пример JSON (templates/A1/prep.json):
  * <pre>
- * String json = TemplatesHolder.getTemplate("A1", "prep");  // содержимое templates/A1/prep.json
+ * {"system": "${system}", "requestId": "${requestId}"}
+ * </pre>
+ * <p>
+ * Пример вызова:
+ * <pre>
+ * String json = TemplatesHolder.getTemplate("A1", "prep");  // без параметров
+ * String json = TemplatesHolder.getTemplate("A1", "prep", Map.of("requestId", "12345"));  // с параметрами
  * </pre>
  */
 public final class TemplatesHolder {
@@ -87,6 +93,12 @@ public final class TemplatesHolder {
         }
     }
 
+    private static String getRawTemplate(String systemName, String stepName) {
+        if (systemName == null || stepName == null) return null;
+        Map<String, String> steps = templatesBySystem.get(systemName);
+        return steps != null ? steps.get(stepName) : null;
+    }
+
     /**
      * Возвращает содержимое JSON-шаблона для системы и шага, или null, если не найден.
      *
@@ -94,9 +106,42 @@ public final class TemplatesHolder {
      * @param stepName   название шага (имя файла без .json)
      */
     public static String getTemplate(String systemName, String stepName) {
-        if (systemName == null || stepName == null) return null;
-        Map<String, String> steps = templatesBySystem.get(systemName);
-        return steps != null ? steps.get(stepName) : null;
+        return getTemplate(systemName, stepName, Collections.emptyMap());
+    }
+
+    /**
+     * Возвращает JSON-шаблон с подстановкой параметров.
+     * Плейсхолдеры в формате {@code ${var}} заменяются на значения из params.
+     * Ключи {@code system} и {@code step} подставляются автоматически (из systemName и stepName).
+     *
+     * @param systemName название системы (папка в templates/)
+     * @param stepName   название шага (имя файла без .json)
+     * @param params     дополнительные параметры для подстановки (ключ — имя переменной без ${})
+     * @return заполненный JSON или null, если шаблон не найден
+     */
+    public static String getTemplate(String systemName, String stepName, Map<String, String> params) {
+        String raw = getRawTemplate(systemName, stepName);
+        if (raw == null) return null;
+
+        Map<String, String> allParams = new HashMap<>();
+        allParams.put("system", systemName);
+        allParams.put("step", stepName);
+        if (params != null) allParams.putAll(params);
+
+        return replacePlaceholders(raw, allParams);
+    }
+
+    /**
+     * Заменяет все вхождения ${key} на соответствующее значение из params.
+     * Использует String.replace для надёжности (без regex).
+     */
+    private static String replacePlaceholders(String template, Map<String, String> params) {
+        String result = template;
+        for (Map.Entry<String, String> e : params.entrySet()) {
+            String placeholder = "${" + e.getKey() + "}";
+            result = result.replace(placeholder, e.getValue());
+        }
+        return result;
     }
 
     /**

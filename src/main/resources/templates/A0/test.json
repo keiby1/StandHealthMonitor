@@ -1,0 +1,97 @@
+{
+  "company": {
+    "name": "TechNova Solutions",
+    "location": "Moscow, Russia",
+    "founded": 2015,
+    "employees": 127,
+    "departments": [
+      {
+        "name": "Development",
+        "head": "Anna Petrova",
+        "team_size": 45,
+        "projects": [
+          {
+            "name": "E-Commerce Platform",
+            "status": "active",
+            "deadline": "2026-06-30",
+            "budget": 2500000
+          },
+          {
+            "name": "Mobile Banking App",
+            "status": "planning",
+            "deadline": "2026-09-15",
+            "budget": 1800000
+          }
+        ]
+      },
+      {
+        "name": "Design",
+        "head": "Ivan Smirnov",
+        "team_size": 22,
+        "projects": [
+          {
+            "name": "UI/UX Redesign",
+            "status": "in_progress",
+            "deadline": "2026-03-20",
+            "budget": 750000
+          }
+        ]
+      },
+      {
+        "name": "Marketing",
+        "head": "Maria Ivanova",
+        "team_size": 18,
+        "projects": [
+          {
+            "name": "Social Media Campaign",
+            "status": "completed",
+            "deadline": "2026-01-31",
+            "budget": 450000
+          }
+        ]
+      }
+    ],
+    "employees": [
+      {
+        "id": 1,
+        "name": "Alexey Kuznetsov",
+        "position": "Senior Developer",
+        "department": "Development",
+        "salary": 250000,
+        "hire_date": "2020-03-15",
+        "skills": ["JavaScript", "React", "Node.js", "Docker"]
+      },
+      {
+        "id": 2,
+        "name": "Elena Volkova",
+        "position": "Frontend Developer",
+        "department": "Development",
+        "salary": 180000,
+        "hire_date": "2021-07-22",
+        "skills": ["Vue.js", "TypeScript", "CSS3", "Figma"]
+      },
+      {
+        "id": 3,
+        "name": "Dmitry Sokolov",
+        "position": "UI/UX Designer",
+        "department": "Design",
+        "salary": 160000,
+        "hire_date": "2019-11-10",
+        "skills": ["Figma", "Adobe XD", "Sketch", "Prototyping"]
+      }
+    ],
+    "contacts": {
+      "email": "info@technova.ru",
+      "phone": "+7 (495) 123-45-67",
+      "address": "ул. Ленина, 25, Москва, 101000"
+    },
+    "technologies": [
+      "React",
+      "Node.js",
+      "PostgreSQL",
+      "AWS",
+      "Docker",
+      "Kubernetes"
+    ]
+  }
+}
