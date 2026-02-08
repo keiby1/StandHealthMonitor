@@ -290,7 +290,7 @@
     }
     .modal-close:hover { background: var(--bg-elevated); color: var(--text-primary); }
     .modal-body { padding: 20px; overflow-y: auto; display: flex; gap: 20px; }
-    #pingModal .modal-body { overflow-y: auto; max-height: none; align-items: flex-start; }
+    #pingModal .modal-body { overflow-y: auto; overflow-x: auto; max-height: none; align-items: flex-start; }
     #pingAllModal .modal-body { flex-direction: column; }
     .ping-systems-list { display: flex; flex-direction: column; gap: 10px; width: 600px; flex-shrink: 0; padding: 16px; border-radius: var(--radius-sm); }
     .ping-system-item {
@@ -310,8 +310,8 @@
     }
     .ping-btn-item:hover { background: #059669; transform: translateY(-1px); }
     .ping-btn-item:disabled { background: var(--text-muted); cursor: not-allowed; transform: none; }
-    .ping-result-container { width: 350px; flex-shrink: 0; position: relative; }
-    .ping-result { padding: 12px; border-radius: 6px; position: absolute; width: 100%; }
+    .ping-result-container { min-width: 350px; width: fit-content; flex-shrink: 0; position: relative; }
+    .ping-result { padding: 12px; border-radius: 6px; position: relative; min-width: 350px; width: fit-content; }
     #pingModal .ping-result-container { min-height: fit-content; }
     .ping-result-success { background: #d1fae5; border: 1px solid #10b981; color: #065f46; }
     .ping-result-warn { background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; }
@@ -1799,7 +1799,7 @@
       // Вычисляем позицию элемента относительно видимой области modalBody
       // и выравниваем результат точно с верхней границей элемента системы
       const relativeTop = itemRect.top - containerRect.top;
-      pingResult.style.top = `${relativeTop}px`;
+      pingResult.style.marginTop = `${Math.max(0, relativeTop)}px`;
 
       // Устанавливаем минимальную высоту контейнера результата равной высоте результата
       // чтобы модальное окно могло расширяться по высоте
@@ -1826,7 +1826,7 @@
           const newItemRect = itemElement.getBoundingClientRect();
           const newContainerRect = pingResultContainer.getBoundingClientRect();
           const newRelativeTop = newItemRect.top - newContainerRect.top;
-          pingResult.style.top = `${newRelativeTop}px`;
+          pingResult.style.marginTop = `${Math.max(0, newRelativeTop)}px`;
         }, 50);
       }
     }
