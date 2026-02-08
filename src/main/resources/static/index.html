@@ -293,6 +293,18 @@
     #pingModal .modal-body { overflow-y: auto; overflow-x: auto; max-height: none; align-items: flex-start; }
     #pingAllModal .modal-body { flex-direction: column; }
     .ping-systems-list { display: flex; flex-direction: column; gap: 10px; width: 600px; flex-shrink: 0; padding: 16px; border-radius: var(--radius-sm); }
+    .ping-group { margin-bottom: 4px; }
+    .ping-group-header {
+      display: flex; align-items: center; gap: 8px; padding: 10px 14px; cursor: pointer;
+      border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-elevated);
+      font-weight: 600; font-size: 14px; color: var(--text-primary); user-select: none;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .ping-group-header:hover { background: var(--bg-secondary); border-color: var(--border-hover); }
+    .ping-group-icon { font-size: 12px; transition: transform 0.2s ease; color: var(--text-muted); }
+    .ping-group.expanded .ping-group-icon { transform: rotate(90deg); }
+    .ping-group-items { display: none; flex-direction: column; gap: 10px; margin-top: 10px; padding-left: 12px; border-left: 2px solid var(--border); }
+    .ping-group.expanded .ping-group-items { display: flex; }
     .ping-system-item {
       display: flex; justify-content: space-between; align-items: center;
       padding: 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -1457,34 +1469,67 @@
           return;
         }
 
+        // Нормализуем: support legacy {systems: ["A0","A1"]} и новый {systems: [{name,group}]}
+        const systemsWithGroups = systems.map(s => typeof s === 'string' ? { name: s, group: null } : s);
+
+        // Группируем: groupName -> [systems]. null = без группы
+        const byGroup = new Map();
+        for (const s of systemsWithGroups) {
+          const g = (s.group == null || String(s.group).trim() === '') ? null : String(s.group).trim();
+          if (!byGroup.has(g)) byGroup.set(g, []);
+          byGroup.get(g).push(s.name);
+        }
+
         pingSystemsList.innerHTML = '';
-        for (const systemName of systems) {
+
+        function appendSystemItem(systemName) {
           const item = document.createElement('div');
           item.className = 'ping-system-item';
-
           const content = document.createElement('div');
           content.className = 'ping-system-item-content';
-
           const name = document.createElement('div');
           name.className = 'ping-system-item-name';
           name.textContent = systemName;
-
           const chartCanvas = document.createElement('canvas');
           chartCanvas.className = 'ping-system-chart';
           chartCanvas.width = 200;
           chartCanvas.height = 40;
           drawBarChart14Days(chartCanvas, systemName);
-
           const pingButton = document.createElement('button');
           pingButton.className = 'ping-btn-item';
           pingButton.textContent = 'Проверить';
           pingButton.onclick = () => executePing(systemName, pingButton, item);
-
           content.appendChild(chartCanvas);
           content.appendChild(name);
           item.appendChild(content);
           item.appendChild(pingButton);
-          pingSystemsList.appendChild(item);
+          return item;
+        }
+
+        // Системы без группы — как раньше
+        const ungrouped = byGroup.get(null) || [];
+        for (const systemName of ungrouped) {
+          pingSystemsList.appendChild(appendSystemItem(systemName));
+        }
+
+        // Группы (свёрнутые по умолчанию), отсортированные по имени
+        const sortedGroups = [...byGroup.entries()].filter(([g]) => g != null).sort((a, b) => a[0].localeCompare(b[0], 'ru'));
+        for (const [groupName, systemNames] of sortedGroups) {
+          systemNames.sort((a, b) => a.localeCompare(b, 'ru'));
+          const groupEl = document.createElement('div');
+          groupEl.className = 'ping-group';
+          const header = document.createElement('div');
+          header.className = 'ping-group-header';
+          header.innerHTML = `<span class="ping-group-icon">▶</span><span>${groupName}</span>`;
+          header.onclick = () => groupEl.classList.toggle('expanded');
+          const itemsEl = document.createElement('div');
+          itemsEl.className = 'ping-group-items';
+          for (const systemName of systemNames) {
+            itemsEl.appendChild(appendSystemItem(systemName));
+          }
+          groupEl.appendChild(header);
+          groupEl.appendChild(itemsEl);
+          pingSystemsList.appendChild(groupEl);
         }
       } catch (error) {
         console.error('Ошибка загрузки списка систем:', error);
@@ -1875,7 +1920,8 @@
         }
 
         const data = await response.json();
-        const systems = data.systems || [];
+        const systemsRaw = data.systems || [];
+        const systems = systemsRaw.map(s => typeof s === 'string' ? s : s.name);
 
         if (systems.length === 0) {
           pingAllGrid.innerHTML = '<div class="muted">Список систем пуст. Добавьте системы в базу данных.</div>';

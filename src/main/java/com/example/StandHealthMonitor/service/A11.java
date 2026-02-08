@@ -18,9 +18,11 @@ import java.util.Map;
  */
 @Component
 public class A11 implements PeriodicTask {
+    String group = "G1";
 
     @Override
     public PingResponse execute() {
+
         String rqJson = TemplatesHolder.getTemplate("A1", "prep",
                 Map.of(
                         "test", "123",

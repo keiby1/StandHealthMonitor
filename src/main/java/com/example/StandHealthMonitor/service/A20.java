@@ -15,7 +15,7 @@ import java.util.Map;
  */
 @Component
 public class A20 implements PeriodicTask {
-
+    String group = "G2";
     @Override
     public PingResponse execute() {
         String rqJson = TemplatesHolder.getTemplate("A1", "prep",

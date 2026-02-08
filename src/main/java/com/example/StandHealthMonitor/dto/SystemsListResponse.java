@@ -4,21 +4,22 @@ import java.util.List;
 
 /**
  * DTO для ответа со списком систем.
+ * systems — список систем с группами (name, group; group=null для систем без группы).
  */
 public class SystemsListResponse {
-    private List<String> systems;
+    private List<SystemWithGroup> systems;
 
     public SystemsListResponse() {}
 
-    public SystemsListResponse(List<String> systems) {
+    public SystemsListResponse(List<SystemWithGroup> systems) {
         this.systems = systems;
     }
 
-    public List<String> getSystems() {
+    public List<SystemWithGroup> getSystems() {
         return systems;
     }
 
-    public void setSystems(List<String> systems) {
+    public void setSystems(List<SystemWithGroup> systems) {
         this.systems = systems;
     }
 }

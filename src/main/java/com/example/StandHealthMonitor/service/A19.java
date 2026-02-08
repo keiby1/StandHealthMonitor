@@ -15,6 +15,7 @@ import java.util.Map;
  */
 @Component
 public class A19 implements PeriodicTask {
+    String group = "G2";
 
     @Override
     public PingResponse execute() {

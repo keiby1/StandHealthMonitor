@@ -2,8 +2,10 @@ package com.example.StandHealthMonitor.controller;
 
 import com.example.StandHealthMonitor.dto.PingRequest;
 import com.example.StandHealthMonitor.dto.PingResponse;
+import com.example.StandHealthMonitor.dto.SystemWithGroup;
 import com.example.StandHealthMonitor.dto.SystemsListResponse;
 import com.example.StandHealthMonitor.repository.SystemStatusRepository;
+import com.example.StandHealthMonitor.service.SystemGroupRegistry;
 import com.example.StandHealthMonitor.service.SystemPingService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,10 +25,12 @@ public class PingController {
     
     private final SystemPingService systemPingService;
     private final SystemStatusRepository systemStatusRepository;
+    private final SystemGroupRegistry systemGroupRegistry;
 
-    public PingController(SystemPingService systemPingService, SystemStatusRepository systemStatusRepository) {
+    public PingController(SystemPingService systemPingService, SystemStatusRepository systemStatusRepository, SystemGroupRegistry systemGroupRegistry) {
         this.systemPingService = systemPingService;
         this.systemStatusRepository = systemStatusRepository;
+        this.systemGroupRegistry = systemGroupRegistry;
     }
 
     /**
@@ -45,7 +49,11 @@ public class PingController {
         List<String> systemsList = new ArrayList<>(uniqueSystems);
         systemsList.sort(String::compareTo); // Сортируем по алфавиту
         
-        return ResponseEntity.ok(new SystemsListResponse(systemsList));
+        List<SystemWithGroup> systemsWithGroups = systemsList.stream()
+                .map(name -> new SystemWithGroup(name, systemGroupRegistry.getGroup(name)))
+                .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(new SystemsListResponse(systemsWithGroups));
     }
 
     /**

@@ -17,7 +17,8 @@ import java.util.List;
  */
 @Component
 public class A2 implements PeriodicTask {
-    
+    String group = "G2";
+
     @Override
     public PingResponse execute() {
         System.out.println("Пример периодической задачи выполнен");
