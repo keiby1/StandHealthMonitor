@@ -908,8 +908,10 @@
     }
 
     function populateSystemFilter() {
-      systemFilterSelect.innerHTML = '<option value="ALL">ALL</option>';
-      availableSystems.sort().forEach(systemName => {
+      systemFilterSelect.innerHTML = '<option value="ALL">Все системы</option>';
+      // Нормализуем: support legacy {systems: ["A0","A1"]} и новый {systems: [{name,group}]}
+      const systemNames = availableSystems.map(s => typeof s === 'string' ? s : s.name);
+      systemNames.sort().forEach(systemName => {
         const option = document.createElement('option');
         option.value = systemName;
         option.textContent = systemName;
