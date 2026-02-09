@@ -1,7 +1,9 @@
-package com.example.StandHealthMonitor.service;
+package com.example.StandHealthMonitor.Systems;
 
 import com.example.StandHealthMonitor.dto.OperStatPbj;
 import com.example.StandHealthMonitor.dto.PingResponse;
+import com.example.StandHealthMonitor.service.PeriodicTask;
+import com.example.StandHealthMonitor.service.TemplatesHolder;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedList;
@@ -16,23 +18,23 @@ import java.util.List;
  * автоматически зарегистрировал ваш класс.
  */
 @Component
-public class A8 implements PeriodicTask {
+public class A0 implements PeriodicTask {
     
     @Override
     public PingResponse execute() {
         System.out.println("Пример периодической задачи выполнен");
 
-        String rq1 = "{\"Rq\":\"123\"}";
+        String rq1 = TemplatesHolder.getTemplate("A0", "test");
         String rs1 = "{\"Rs\":\"qwe\"}";
         String rq2 = "{\"Rs\":\"213543605860948796578\"}";
         String rs2 = "{\"Rs\":\"fksdalfbksabf\"}";
 
-
+        System.out.println(rq1);
         List<OperStatPbj> list = new LinkedList<>();
         list.add(new OperStatPbj("Step1", "0", "200", rq1, rs1));
-        list.add(new OperStatPbj("Step2", "1", "200", rq2, rs2));
+        list.add(new OperStatPbj("Step2", "-1", "500", rq2, rs2));
 
-        return new PingResponse("A8", 200, "1", "Все ок?", false, list);
+        return new PingResponse("A0", 500, "-1", "Все ок", false, list);
     }
 }
 

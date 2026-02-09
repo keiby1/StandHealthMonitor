@@ -1,7 +1,9 @@
-package com.example.StandHealthMonitor.service;
+package com.example.StandHealthMonitor.Systems;
 
 import com.example.StandHealthMonitor.dto.OperStatPbj;
 import com.example.StandHealthMonitor.dto.PingResponse;
+import com.example.StandHealthMonitor.service.PeriodicTask;
+import com.example.StandHealthMonitor.service.TemplatesHolder;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedList;

@@ -1,6 +1,8 @@
-package com.example.StandHealthMonitor.service;
+package com.example.StandHealthMonitor.Systems;
 
 import com.example.StandHealthMonitor.dto.PingResponse;
+import com.example.StandHealthMonitor.service.PeriodicTask;
+import com.example.StandHealthMonitor.service.TemplatesHolder;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -14,8 +16,7 @@ import java.util.Map;
  * автоматически зарегистрировал ваш класс.
  */
 @Component
-public class A19 implements PeriodicTask {
-    String group = "G2";
+public class A15 implements PeriodicTask {
 
     @Override
     public PingResponse execute() {
@@ -26,7 +27,7 @@ public class A19 implements PeriodicTask {
         System.out.println(rqJson);
 
         System.out.println("Пример периодической задачи выполнен");
-        return new PingResponse("A19", "System A", 200, "200", "Все ок", true);
+        return new PingResponse("A15", "System A", 200, "200", "Все ок", true);
     }
 }
 
