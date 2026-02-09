@@ -28,7 +28,9 @@ import java.util.Map;
  * Пример вызова:
  * <pre>
  * String json = TemplatesHolder.getTemplate("A1", "prep");  // без параметров
- * String json = TemplatesHolder.getTemplate("A1", "prep", Map.of("requestId", "12345"));  // с параметрами
+ * Map<String, String> params = new HashMap<>();
+ * params.put("requestId", "12345");
+ * String json = TemplatesHolder.getTemplate("A1", "prep", params);  // с параметрами
  * </pre>
  */
 public final class TemplatesHolder {

@@ -20,7 +20,7 @@ public class SystemGroupRegistry {
         for (PeriodicTask task : tasks) {
             String systemName = task.getClass().getSimpleName();
             String group = readGroupField(task);
-            systemToGroup.put(systemName, (group == null || group.isBlank()) ? null : group);
+            systemToGroup.put(systemName, (group == null || group.trim().isEmpty()) ? null : group);
         }
     }
 

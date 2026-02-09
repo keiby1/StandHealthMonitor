@@ -1,6 +1,6 @@
 package com.example.StandHealthMonitor.entity;
 
-import jakarta.persistence.*;
+import javax.persistence.*;
 
 @Entity
 @Table(name = "criteria")

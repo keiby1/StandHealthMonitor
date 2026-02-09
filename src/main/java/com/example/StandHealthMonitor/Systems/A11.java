@@ -6,6 +6,7 @@ import com.example.StandHealthMonitor.service.PeriodicTask;
 import com.example.StandHealthMonitor.service.TemplatesHolder;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -25,10 +26,10 @@ public class A11 implements PeriodicTask {
     @Override
     public PingResponse execute() {
 
-        String rqJson = TemplatesHolder.getTemplate("A1", "prep",
-                Map.of(
-                        "test", "123",
-                        "qwe", "steeeep213"));
+        Map<String, String> params = new HashMap<>();
+        params.put("test", "123");
+        params.put("qwe", "steeeep213");
+        String rqJson = TemplatesHolder.getTemplate("A1", "prep", params);
         System.out.println(rqJson);
 
         List<OperStatPbj> list = new LinkedList<>();

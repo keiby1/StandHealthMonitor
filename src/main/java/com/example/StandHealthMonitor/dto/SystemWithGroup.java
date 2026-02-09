@@ -9,7 +9,7 @@ public class SystemWithGroup {
 
     public SystemWithGroup(String name, String group) {
         this.name = name;
-        this.group = (group == null || group.isBlank()) ? null : group;
+        this.group = (group == null || group.trim().isEmpty()) ? null : group;
     }
 
     public String getName() {
