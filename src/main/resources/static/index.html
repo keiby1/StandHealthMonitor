@@ -48,7 +48,7 @@
       position: sticky;
       top: 0;
       z-index: 100;
-      backdrop-filter: blur(12px);
+      /* backdrop-filter убран для производительности */
     }
     .app-header-inner {
       max-width: 1600px;
@@ -165,9 +165,10 @@
       border: 1px solid var(--border);
       background: var(--bg-card);
       color: var(--text-primary);
-      transition: transform 0.1s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      will-change: transform;
+      transition: transform 0.1s ease, border-color 0.2s ease;
     }
-    .day:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--border-hover); }
+    .day:hover { transform: translateY(-2px); border-color: var(--border-hover); }
     .day[aria-selected="true"] {
       outline: 2px solid var(--accent);
       outline-offset: 2px;
@@ -187,7 +188,7 @@
       background: var(--bg-card);
       color: var(--text-primary);
       cursor: pointer;
-      transition: background 0.2s, border-color 0.2s;
+      transition: background-color 0.2s, border-color 0.2s;
     }
     .controls button:hover,
     .controls select:hover { background: var(--bg-elevated); border-color: var(--border-hover); }
@@ -208,9 +209,9 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
-      transition: border-color 0.2s, background 0.2s;
+      transition: border-color 0.2s, background-color 0.2s;
     }
-    .card:hover { border-color: var(--border-hover); background: var(--bg-elevated); }
+    .card:hover { border-color: var(--border-hover); background-color: var(--bg-elevated); }
     .badge { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-primary); width: 100%; }
     .muted { color: var(--text-muted); font-size: 13px; }
     .hidden { display: none !important; }
@@ -226,9 +227,10 @@
       color: #fff;
       cursor: pointer;
       font-weight: 500;
-      transition: background 0.2s, transform 0.1s;
+      will-change: transform;
+      transition: background-color 0.2s, transform 0.1s;
     }
-    .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    .btn-primary:hover { background-color: var(--accent-hover); transform: translateY(-1px); }
     .btn-secondary {
       font-size: 13px;
       padding: 8px 14px;
@@ -237,9 +239,9 @@
       background: var(--bg-card);
       color: var(--text-primary);
       cursor: pointer;
-      transition: background 0.2s, border-color 0.2s;
+      transition: background-color 0.2s, border-color 0.2s;
     }
-    .btn-secondary:hover { background: var(--bg-elevated); border-color: var(--border-hover); }
+    .btn-secondary:hover { background-color: var(--bg-elevated); border-color: var(--border-hover); }
 
     /* Статистика */
     .stats-sidebar {
@@ -259,7 +261,7 @@
     .modal-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0, 0, 0, 0.4);
-      backdrop-filter: blur(6px);
+      /* backdrop-filter убран для производительности */
       display: flex; align-items: center; justify-content: center;
       z-index: 1000;
     }
@@ -286,9 +288,9 @@
       color: var(--text-muted); padding: 0; width: 36px; height: 36px;
       display: flex; align-items: center; justify-content: center;
       border-radius: var(--radius-sm);
-      transition: background 0.2s, color 0.2s;
+      transition: background-color 0.2s, color 0.2s;
     }
-    .modal-close:hover { background: var(--bg-elevated); color: var(--text-primary); }
+    .modal-close:hover { background-color: var(--bg-elevated); color: var(--text-primary); }
     .modal-body { padding: 20px; overflow-y: auto; display: flex; gap: 20px; }
     #pingModal .modal-body { overflow-y: auto; overflow-x: auto; max-height: none; align-items: flex-start; }
     #pingAllModal .modal-body { flex-direction: column; }
@@ -298,10 +300,10 @@
       display: flex; align-items: center; gap: 8px; padding: 10px 14px; cursor: pointer;
       border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-elevated);
       font-weight: 600; font-size: 14px; color: var(--text-primary); user-select: none;
-      transition: background 0.2s, border-color 0.2s;
+      transition: background-color 0.2s, border-color 0.2s;
     }
-    .ping-group-header:hover { background: var(--bg-secondary); border-color: var(--border-hover); }
-    .ping-group-icon { font-size: 12px; transition: transform 0.2s ease; color: var(--text-muted); }
+    .ping-group-header:hover { background-color: var(--bg-secondary); border-color: var(--border-hover); }
+    .ping-group-icon { font-size: 12px; will-change: transform; transition: transform 0.2s ease; color: var(--text-muted); }
     .ping-group.expanded .ping-group-icon { transform: rotate(90deg); }
     .ping-group-items { display: none; flex-direction: column; gap: 10px; margin-top: 10px; padding-left: 12px; border-left: 2px solid var(--border); }
     .ping-group.expanded .ping-group-items { display: flex; }
@@ -318,9 +320,9 @@
     .ping-btn-item {
       font-size: 13px; padding: 8px 14px; border-radius: var(--radius-sm);
       border: none; background: #10b981; color: #fff; cursor: pointer; flex-shrink: 0;
-      font-weight: 500; transition: background 0.2s, transform 0.1s;
+      font-weight: 500; will-change: transform; transition: background-color 0.2s, transform 0.1s;
     }
-    .ping-btn-item:hover { background: #059669; transform: translateY(-1px); }
+    .ping-btn-item:hover { background-color: #059669; transform: translateY(-1px); }
     .ping-btn-item:disabled { background: var(--text-muted); cursor: not-allowed; transform: none; }
     .ping-result-container { min-width: 350px; width: fit-content; flex-shrink: 0; position: relative; }
     .ping-result { padding: 12px; border-radius: 6px; position: relative; min-width: 350px; width: fit-content; }
@@ -344,7 +346,7 @@
     .ping-result-spoiler { margin-top: 8px; }
     .ping-result-spoiler-header { display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; font-size: 12px; font-weight: 500; padding: 4px 0; }
     .ping-result-spoiler-header:hover { opacity: 0.8; }
-    .ping-result-spoiler-icon { display: inline-block; transition: transform 0.2s ease; font-size: 10px; }
+    .ping-result-spoiler-icon { display: inline-block; will-change: transform; transition: transform 0.2s ease; font-size: 10px; }
     .ping-result-spoiler-icon.expanded { transform: rotate(90deg); }
     .ping-result-spoiler-content { display: none; margin-top: 6px; padding: 8px; background: rgba(0,0,0,.05); border-radius: 4px; border: 1px solid rgba(0,0,0,.1); }
     .ping-result-spoiler-content.expanded { display: block; }
@@ -352,9 +354,9 @@
     /* Массовая проверка */
     .ping-all-grid { display: grid; grid-template-columns: repeat(10, minmax(50px, 1fr)); gap: 8px; padding: 16px; min-width: fit-content; }
     #pingAllModal .modal-body { overflow-x: auto; }
-    .ping-all-item { width: 100%; height: 40px; border-radius: 6px; border: 2px solid rgba(0,0,0,.1); display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .ping-all-item { width: 100%; height: 40px; border-radius: 6px; border: 2px solid rgba(0,0,0,.1); display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; will-change: transform; transition: transform 0.2s ease; }
     .ping-all-item-name { font-size: 11px; font-weight: 500; color: #0f172a; text-align: center; padding: 2px 4px; word-break: break-word; overflow: hidden; text-overflow: ellipsis; }
-    .ping-all-item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.15); }
+    .ping-all-item:hover { transform: translateY(-2px); }
     .ping-all-item.loading { background: #f1f5f9; border-color: #94a3b8; }
     .ping-all-item.loading::after { content: '...'; font-size: 18px; color: #64748b; }
     .ping-all-item.success { background: #d1fae5; border-color: #10b981; }
@@ -1445,12 +1447,20 @@
         const modalBody = pingModal.querySelector('.modal-body');
         modalBody.removeEventListener('scroll', scrollSyncHandler);
         scrollSyncHandler = null;
+        if (scrollRafId !== null) {
+          cancelAnimationFrame(scrollRafId);
+          scrollRafId = null;
+        }
       }
 
       // Удаляем обработчик изменения размера окна
       if (resizeSyncHandler) {
         window.removeEventListener('resize', resizeSyncHandler);
         resizeSyncHandler = null;
+        if (resizeRafId !== null) {
+          cancelAnimationFrame(resizeRafId);
+          resizeRafId = null;
+        }
       }
     }
 
@@ -1542,6 +1552,8 @@
     let currentPingItemElement = null;
     let scrollSyncHandler = null;
     let resizeSyncHandler = null;
+    let scrollRafId = null;
+    let resizeRafId = null;
 
     async function executePing(systemName, button, itemElement) {
       // Блокируем кнопку
@@ -1818,19 +1830,31 @@
         modalBody.removeEventListener('scroll', scrollSyncHandler);
       }
 
-      // Добавляем обработчик прокрутки для синхронизации позиции
+      // Добавляем обработчик прокрутки для синхронизации позиции с throttling
       const modalBody = pingModal.querySelector('.modal-body');
-      scrollSyncHandler = () => syncResultPosition(itemElement);
-      modalBody.addEventListener('scroll', scrollSyncHandler);
+      scrollSyncHandler = () => {
+        if (scrollRafId !== null) return;
+        scrollRafId = requestAnimationFrame(() => {
+          syncResultPosition(itemElement);
+          scrollRafId = null;
+        });
+      };
+      modalBody.addEventListener('scroll', scrollSyncHandler, { passive: true });
 
       // Удаляем предыдущий обработчик изменения размера окна, если он есть
       if (resizeSyncHandler) {
         window.removeEventListener('resize', resizeSyncHandler);
       }
 
-      // Добавляем обработчик изменения размера окна для обновления синхронизации
-      resizeSyncHandler = () => syncResultPosition(itemElement);
-      window.addEventListener('resize', resizeSyncHandler);
+      // Добавляем обработчик изменения размера окна для обновления синхронизации с throttling
+      resizeSyncHandler = () => {
+        if (resizeRafId !== null) return;
+        resizeRafId = requestAnimationFrame(() => {
+          syncResultPosition(itemElement);
+          resizeRafId = null;
+        });
+      };
+      window.addEventListener('resize', resizeSyncHandler, { passive: true });
     }
 
     function syncResultPosition(itemElement) {
@@ -1838,44 +1862,46 @@
 
       const modalBody = pingModal.querySelector('.modal-body');
       const pingResultContainer = document.querySelector('.ping-result-container');
+      if (!pingResultContainer) return;
 
-      const itemRect = itemElement.getBoundingClientRect();
-      const modalBodyRect = modalBody.getBoundingClientRect();
-      const containerRect = pingResultContainer.getBoundingClientRect();
+      // Используем requestAnimationFrame для оптимизации чтения layout свойств
+      requestAnimationFrame(() => {
+        const itemRect = itemElement.getBoundingClientRect();
+        const containerRect = pingResultContainer.getBoundingClientRect();
 
-      // Вычисляем позицию элемента относительно видимой области modalBody
-      // и выравниваем результат точно с верхней границей элемента системы
-      const relativeTop = itemRect.top - containerRect.top;
-      pingResult.style.marginTop = `${Math.max(0, relativeTop)}px`;
+        // Вычисляем позицию элемента относительно видимой области modalBody
+        // и выравниваем результат точно с верхней границей элемента системы
+        const relativeTop = itemRect.top - containerRect.top;
+        pingResult.style.marginTop = `${Math.max(0, relativeTop)}px`;
 
-      // Устанавливаем минимальную высоту контейнера результата равной высоте результата
-      // чтобы модальное окно могло расширяться по высоте
-      const resultHeight = pingResult.offsetHeight;
-      const itemHeight = itemElement.offsetHeight;
-      if (resultHeight > 0) {
-        // Устанавливаем высоту контейнера так, чтобы он мог вместить результат
-        // и был синхронизирован с высотой элемента системы
-        pingResultContainer.style.minHeight = `${Math.max(resultHeight, itemHeight)}px`;
-      }
+        // Устанавливаем минимальную высоту контейнера результата равной высоте результата
+        // чтобы модальное окно могло расширяться по высоте
+        const resultHeight = pingResult.offsetHeight;
+        const itemHeight = itemElement.offsetHeight;
+        if (resultHeight > 0) {
+          // Устанавливаем высоту контейнера так, чтобы он мог вместить результат
+          // и был синхронизирован с высотой элемента системы
+          pingResultContainer.style.minHeight = `${Math.max(resultHeight, itemHeight)}px`;
+        }
 
-      // Убеждаемся, что результат виден - прокручиваем модальное окно если нужно
-      const modalContent = pingModal.querySelector('.modal-content');
-      const resultBottom = containerRect.top + Math.max(resultHeight, itemHeight);
-      const viewportHeight = window.innerHeight;
+        // Убеждаемся, что результат виден - прокручиваем модальное окно если нужно
+        const resultBottom = containerRect.top + Math.max(resultHeight, itemHeight);
+        const viewportHeight = window.innerHeight;
 
-      // Если результат находится внизу и может быть не виден,
-      // прокручиваем модальное окно так, чтобы он был виден
-      if (resultBottom > viewportHeight - 50) {
-        const scrollAmount = resultBottom - viewportHeight + 100;
-        modalBody.scrollTop = Math.max(0, modalBody.scrollTop + scrollAmount);
-        // Обновляем позицию после прокрутки
-        setTimeout(() => {
-          const newItemRect = itemElement.getBoundingClientRect();
-          const newContainerRect = pingResultContainer.getBoundingClientRect();
-          const newRelativeTop = newItemRect.top - newContainerRect.top;
-          pingResult.style.marginTop = `${Math.max(0, newRelativeTop)}px`;
-        }, 50);
-      }
+        // Если результат находится внизу и может быть не виден,
+        // прокручиваем модальное окно так, чтобы он был виден
+        if (resultBottom > viewportHeight - 50) {
+          const scrollAmount = resultBottom - viewportHeight + 100;
+          modalBody.scrollTop = Math.max(0, modalBody.scrollTop + scrollAmount);
+          // Обновляем позицию после прокрутки
+          requestAnimationFrame(() => {
+            const newItemRect = itemElement.getBoundingClientRect();
+            const newContainerRect = pingResultContainer.getBoundingClientRect();
+            const newRelativeTop = newItemRect.top - newContainerRect.top;
+            pingResult.style.marginTop = `${Math.max(0, newRelativeTop)}px`;
+          });
+        }
+      });
     }
 
     // Инициализация обработчиков для модального окна проверки
