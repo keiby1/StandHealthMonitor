@@ -623,21 +623,48 @@
     }
 
     /**
-     * Определяет цвет для дня на основе количества ошибок и критериев из таблицы Criteria.
-     * Правила:
-     * - Если ошибок 0, используется критерий с count=0 (зеленый)
-     * - Если ошибок > 0, ищется максимальный критерий, где count <= количество ошибок
-     * - Если такого критерия нет, используется минимальный критерий для ошибок (count > 0)
+     * Подсчитывает общее количество запросов за день.
+     * @param {Object} dayItem - запись за день
+     * @param {string|null} systemFilter - фильтр по системе (null или 'ALL' для всех систем)
+     * @returns {number} общее количество запросов
      */
-    function colorForFailed(count) {
+    function computeTotalCount(dayItem, systemFilter = null) {
+      if (!dayItem || !Array.isArray(dayItem.stat)) return 0;
+      let total = 0;
+      for (const item of dayItem.stat) {
+        // Если указан фильтр по системе, пропускаем записи других систем
+        if (systemFilter && systemFilter !== 'ALL' && item.system !== systemFilter) {
+          continue;
+        }
+        const itemCount = (item.count && typeof item.count === 'number') ? item.count : 1;
+        total += itemCount;
+      }
+      return total;
+    }
+
+    /**
+     * Определяет цвет для дня на основе процента ошибок и критериев из таблицы Criteria.
+     * Правила:
+     * - Значения в criteria теперь интерпретируются как проценты (относительные значения)
+     * - Если процент ошибок 0, используется критерий с count=0 (зеленый)
+     * - Если процент ошибок > 0, ищется максимальный критерий, где count <= процент ошибок
+     * - Если такого критерия нет, используется минимальный критерий для ошибок (count > 0)
+     * @param {number} failed - количество ошибок
+     * @param {number} total - общее количество запросов
+     * @returns {string} цвет в формате hex
+     */
+    function colorForFailed(failed, total) {
       // Если нет критериев, возвращаем цвет по умолчанию
       if (!criteria || criteria.length === 0) {
         console.warn('Нет критериев!');
-        return count === 0 ? '#86efac' : '#ef4444';
+        return failed === 0 ? '#86efac' : '#ef4444';
       }
 
-      // Если ошибок 0, используем критерий с count=0
-      if (count === 0) {
+      // Вычисляем процент ошибок
+      const errorPercent = total > 0 ? Math.round((failed / total) * 100) : 0;
+
+      // Если ошибок 0%, используем критерий с count=0
+      if (errorPercent === 0) {
         const zeroCriteria = criteria.find(c => c.count === 0);
         if (zeroCriteria) {
           return zeroCriteria.color;
@@ -645,10 +672,11 @@
         return '#86efac'; // зеленый по умолчанию
       }
 
-      // Ищем максимальный критерий, где count <= количество ошибок
+      // Ищем максимальный критерий, где count <= процент ошибок
+      // Значения в criteria теперь интерпретируются как проценты
       let candidate = null;
       for (const c of criteria) {
-        if (typeof c.count === 'number' && c.count > 0 && c.count <= count) {
+        if (typeof c.count === 'number' && c.count > 0 && c.count <= errorPercent) {
           if (!candidate || c.count > candidate.count) {
             candidate = c;
           }
@@ -659,7 +687,7 @@
         return candidate.color;
       }
 
-      // Если не нашли подходящий критерий (ошибок меньше минимального критерия),
+      // Если не нашли подходящий критерий (процент ошибок меньше минимального критерия),
       // используем минимальный критерий для ошибок (count > 0)
       const errorCriteria = criteria.filter(c => c.count > 0);
       if (errorCriteria.length > 0) {
@@ -668,7 +696,7 @@
       }
 
       // Fallback
-      console.warn(`Не удалось найти подходящий критерий для ${count} ошибок`);
+      console.warn(`Не удалось найти подходящий критерий для ${errorPercent}% ошибок`);
       return '#ef4444';
     }
 
@@ -685,7 +713,7 @@
         sw.style.background = c.color;
         const label = document.createElement('span');
         label.className = 'muted';
-        label.textContent = `ошибок: ${c.count}`;
+        label.textContent = `ошибок: ${c.count}%`;
         wrap.appendChild(sw);
         wrap.appendChild(label);
         legendEl.appendChild(wrap);
@@ -823,7 +851,8 @@
 
           if (systemHasData) {
             const failed = computeFailedCount(rec, selectedSystem);
-            bg = colorForFailed(failed);
+            const total = computeTotalCount(rec, selectedSystem);
+            bg = colorForFailed(failed, total);
             title = failed === 0
               ? `${key}: все успешно (0 ошибок)`
               : `${key}: ошибок ${failed}`;
@@ -1060,9 +1089,27 @@
     }
 
     /**
+     * Рассчитывает общее количество запросов за день для конкретной системы
+     * @param {Object} dayItem - запись за день
+     * @param {string} systemName - название системы
+     * @returns {number} общее количество запросов
+     */
+    function computeTotalCountForSystem(dayItem, systemName) {
+      if (!dayItem || !Array.isArray(dayItem.stat)) return 0;
+      let total = 0;
+      for (const item of dayItem.stat) {
+        if (item.system === systemName) {
+          const itemCount = (item.count && typeof item.count === 'number') ? item.count : 1;
+          total += itemCount;
+        }
+      }
+      return total;
+    }
+
+    /**
      * Рассчитывает статистику за последние 14 дней для конкретной системы
      * @param {string} systemName - название системы
-     * @returns {Array} массив объектов {date: string, failedCount: number, hasData: boolean} за последние 14 дней
+     * @returns {Array} массив объектов {date: string, failedCount: number, totalCount: number, hasData: boolean} за последние 14 дней
      */
     function calculateLast14DaysStats(systemName) {
       const today = new Date();
@@ -1075,6 +1122,7 @@
         const rec = dayToRecord.get(key);
 
         let failedCount = 0;
+        let totalCount = 0;
         let hasData = false;
 
         if (rec && Array.isArray(rec.stat)) {
@@ -1086,15 +1134,17 @@
             }
           }
 
-          // Считаем количество ошибок для этой системы
+          // Считаем количество ошибок и общее количество запросов для этой системы
           if (hasData) {
             failedCount = computeFailedCountForSystem(rec, systemName);
+            totalCount = computeTotalCountForSystem(rec, systemName);
           }
         }
 
         stats.push({
           date: key,
           failedCount: failedCount,
+          totalCount: totalCount,
           hasData: hasData
         });
       }
@@ -1141,8 +1191,8 @@
           ctx.fillStyle = '#e5e7eb';
           ctx.fillRect(x, 1, effectiveBarWidth, barHeight);
         } else {
-          // Используем цвет из критериев на основе количества ошибок
-          const color = colorForFailed(stat.failedCount);
+          // Используем цвет из критериев на основе процента ошибок
+          const color = colorForFailed(stat.failedCount, stat.totalCount);
           ctx.fillStyle = color;
           ctx.fillRect(x, 1, effectiveBarWidth, barHeight);
         }
