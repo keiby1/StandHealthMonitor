@@ -549,7 +549,7 @@
     const statsV2ChartLegend = document.getElementById('statsV2ChartLegend');
     const statsV2SystemsInfo = document.getElementById('statsV2SystemsInfo');
 
-    let successStatuses = new Set(['200']);
+    let successStatuses = new Set(['0']);
     let criteria = [];
     let dayToRecord = new Map();
     let selectedCell = null;
@@ -586,7 +586,7 @@
     /**
      * Подсчитывает количество неуспешных статусов за день.
      * Правила:
-     * - Статус "200" считается успешным (из таблицы SystemStatus)
+     * - Статус "0" считается успешным (из таблицы SystemStatus)
      * - Все остальные статусы считаются неуспешными
      * - Учитывается поле count из таблицы SystemStatus
      * - Суммируются count всех неуспешных статусов
@@ -600,7 +600,7 @@
           continue;
         }
 
-        // Проверяем, является ли статус успешным (200 = успешный)
+        // Проверяем, является ли статус успешным (0 = успешный)
         const statusStr = String(item.status);
         const isSuccess = successStatuses.has(statusStr);
 
@@ -881,8 +881,8 @@
           populateSystemFilter();
         }
 
-        // Статус "200" считается успешным по умолчанию
-        successStatuses = new Set(['200']);
+        // Статус "0" считается успешным по умолчанию
+        successStatuses = new Set(['0']);
         criteria = Array.isArray(criteriaJson.criterias) ? criteriaJson.criterias : [];
 
         // Отладка: выводим загруженные критерии
