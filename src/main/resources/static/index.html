@@ -244,6 +244,15 @@
     .btn-secondary:hover { background-color: var(--bg-elevated); border-color: var(--border-hover); }
 
     /* Статистика */
+    .stats-legend-item {
+      cursor: pointer;
+      user-select: none;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+    }
+    .stats-legend-item:hover { background: var(--bg-elevated); }
+    .stats-legend-item.stats-legend-hidden { opacity: 0.45; }
+
     .stats-sidebar {
       width: 340px;
       min-width: 300px;
@@ -1212,6 +1221,9 @@
 
     // Статистика (v2) — линейная диаграмма и информация о простоях
     const SYSTEM_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1', '#14b8a6', '#a855f7'];
+    let statsV2HiddenSeries = new Set();
+    let lastStatsV2SuccessPerDay = null;
+    let lastStatsV2DaysInMonth = null;
 
     /**
      * Возвращает успешные запросы по дням и системам за выбранный месяц.
@@ -1304,8 +1316,10 @@
 
     /**
      * Рисует линейную диаграмму: X = дни месяца, Y = успешные запросы, серия = система.
+     * @param {Set<string>} [hiddenSeries] — имена систем, линии которых не рисовать (клик по легенде).
      */
-    function drawLineChartStatsV2(canvas, successPerDay, daysInMonth) {
+    function drawLineChartStatsV2(canvas, successPerDay, daysInMonth, hiddenSeries) {
+      const hidden = hiddenSeries || new Set();
       const ctx = canvas.getContext('2d');
       const width = canvas.width;
       const height = canvas.height;
@@ -1316,17 +1330,19 @@
       ctx.clearRect(0, 0, width, height);
 
       const systems = Array.from(successPerDay.keys()).sort((a, b) => a.localeCompare(b, 'ru'));
+      const visibleSystems = systems.filter(s => !hidden.has(s));
+
       if (systems.length === 0) {
         ctx.fillStyle = '#64748b';
         ctx.font = '14px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('Нет данных за выбранный месяц', width / 2, height / 2);
-        return;
+        return systems;
       }
 
       let maxY = 0;
-      for (const sys of systems) {
+      for (const sys of visibleSystems) {
         const arr = successPerDay.get(sys);
         for (let i = 0; i < daysInMonth; i++) {
           if (arr[i] > maxY) maxY = arr[i];
@@ -1359,6 +1375,7 @@
       ctx.fillText(String(maxY), padding.left - 6, padding.top);
 
       systems.forEach((systemName, idx) => {
+        if (hidden.has(systemName)) return;
         const color = SYSTEM_COLORS[idx % SYSTEM_COLORS.length];
         const arr = successPerDay.get(systemName);
         ctx.strokeStyle = color;
@@ -1380,6 +1397,16 @@
       });
 
       return systems;
+    }
+
+    /** Перерисовывает только график и обновляет визуал легенды (вкл/выкл серий). */
+    function redrawStatsV2ChartOnly() {
+      if (lastStatsV2SuccessPerDay == null || lastStatsV2DaysInMonth == null) return;
+      drawLineChartStatsV2(statsV2LineChart, lastStatsV2SuccessPerDay, lastStatsV2DaysInMonth, statsV2HiddenSeries);
+      statsV2ChartLegend.querySelectorAll('[data-stats-system]').forEach(wrap => {
+        const name = wrap.getAttribute('data-stats-system');
+        wrap.classList.toggle('stats-legend-hidden', statsV2HiddenSeries.has(name));
+      });
     }
 
     function renderStatsV2Content() {
@@ -1410,11 +1437,17 @@
         monthStats = filteredStats;
       }
 
-      const systems = drawLineChartStatsV2(statsV2LineChart, successPerDay, daysInMonth) || [];
+      statsV2HiddenSeries.clear();
+      lastStatsV2SuccessPerDay = successPerDay;
+      lastStatsV2DaysInMonth = daysInMonth;
+      const systems = drawLineChartStatsV2(statsV2LineChart, successPerDay, daysInMonth, statsV2HiddenSeries) || [];
 
       statsV2ChartLegend.innerHTML = '';
       systems.forEach((systemName, idx) => {
         const wrap = document.createElement('div');
+        wrap.setAttribute('data-stats-system', systemName);
+        wrap.setAttribute('title', 'Клик: показать/скрыть линию на графике');
+        wrap.className = 'stats-legend-item';
         wrap.style.display = 'inline-flex';
         wrap.style.alignItems = 'center';
         wrap.style.gap = '6px';
@@ -1426,6 +1459,14 @@
         label.textContent = systemName;
         wrap.appendChild(sw);
         wrap.appendChild(label);
+        wrap.addEventListener('click', () => {
+          if (statsV2HiddenSeries.has(systemName)) {
+            statsV2HiddenSeries.delete(systemName);
+          } else {
+            statsV2HiddenSeries.add(systemName);
+          }
+          redrawStatsV2ChartOnly();
+        });
         statsV2ChartLegend.appendChild(wrap);
       });
 
