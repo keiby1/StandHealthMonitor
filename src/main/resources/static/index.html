@@ -402,6 +402,8 @@
   <link rel="icon" href="/image/calendar_18780422.png" type="image/png" />
   <meta name="color-scheme" content="light">
   <meta name="description" content="Тепловая карта доступности стенда по дням и системам">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3"></script>
 </head>
 <body>
   <header class="app-header">
@@ -510,10 +512,9 @@
         <button class="modal-close" id="closeStatsV2Modal" aria-label="Закрыть">×</button>
       </div>
       <div class="modal-body" id="statsV2ModalBody" style="flex-direction: column; gap: 24px;">
-        <div id="statsV2ChartContainer" style="width: 100%; min-height: 300px;">
-          <canvas id="statsV2LineChart" width="1000" height="300"></canvas>
+        <div id="statsV2ChartContainer" style="width: 100%; min-height: 300px; position: relative;">
+          <canvas id="statsV2LineChart"></canvas>
         </div>
-        <div id="statsV2ChartLegend" class="legend" style="flex-wrap: wrap; gap: 12px; margin-top: -8px;"></div>
         <div id="statsV2SystemsInfo" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;"></div>
       </div>
     </div>
@@ -550,8 +551,8 @@
     const statsV2ModalTitle = document.getElementById('statsV2ModalTitle');
     const statsV2ModalBody = document.getElementById('statsV2ModalBody');
     const statsV2LineChart = document.getElementById('statsV2LineChart');
-    const statsV2ChartLegend = document.getElementById('statsV2ChartLegend');
     const statsV2SystemsInfo = document.getElementById('statsV2SystemsInfo');
+    let statsV2ChartInstance = null;
     const statsV2PrevMonth = document.getElementById('statsV2PrevMonth');
     const statsV2NextMonth = document.getElementById('statsV2NextMonth');
 
@@ -1212,6 +1213,15 @@
 
     // Статистика (v2) — линейная диаграмма и информация о простоях
     const SYSTEM_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1', '#14b8a6', '#a855f7'];
+    /** Порог по оси Y: 0 = не показывать; иначе — зелёная линия и красная заливка ниже (как в Grafana). */
+    const STATS_THRESHOLD = 24;
+
+    /** Смещение тултипа вправо от курсора, чтобы не перекрывать точку наведения. */
+    Chart.Tooltip.positioners.rightOffset = function(elements, eventPosition) {
+      const pos = Chart.Tooltip.positioners.average.call(this, elements, eventPosition);
+      if (!pos) return pos;
+      return { x: pos.x + 28, y: pos.y, xAlign: 'left', yAlign: 'center' };
+    };
 
     /**
      * Возвращает успешные запросы по дням и системам за выбранный месяц.
@@ -1303,80 +1313,94 @@
     }
 
     /**
-     * Рисует линейную диаграмму: X = дни месяца, Y = успешные запросы, серия = система.
+     * Создаёт или обновляет линейную диаграмму Chart.js: X = дни месяца, Y = успешные запросы, серия = система.
+     * Легенда Chart.js по умолчанию позволяет включать/выключать линии по клику.
+     * @returns {string[]} массив имён систем (для карточек ниже)
      */
-    function drawLineChartStatsV2(canvas, successPerDay, daysInMonth) {
-      const ctx = canvas.getContext('2d');
-      const width = canvas.width;
-      const height = canvas.height;
-      const padding = { top: 20, right: 20, bottom: 40, left: 50 };
-      const chartWidth = width - padding.left - padding.right;
-      const chartHeight = height - padding.top - padding.bottom;
-
-      ctx.clearRect(0, 0, width, height);
-
+    function initStatsV2Chart(successPerDay, daysInMonth) {
       const systems = Array.from(successPerDay.keys()).sort((a, b) => a.localeCompare(b, 'ru'));
-      if (systems.length === 0) {
-        ctx.fillStyle = '#64748b';
-        ctx.font = '14px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('Нет данных за выбранный месяц', width / 2, height / 2);
-        return;
+
+      if (statsV2ChartInstance) {
+        statsV2ChartInstance.destroy();
+        statsV2ChartInstance = null;
       }
 
-      let maxY = 0;
-      for (const sys of systems) {
-        const arr = successPerDay.get(sys);
-        for (let i = 0; i < daysInMonth; i++) {
-          if (arr[i] > maxY) maxY = arr[i];
-        }
-      }
-      if (maxY === 0) maxY = 1;
-
-      const stepX = chartWidth / Math.max(1, daysInMonth - 1);
-      const scaleY = chartHeight / maxY;
-
-      ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(padding.left, padding.top);
-      ctx.lineTo(padding.left, padding.top + chartHeight);
-      ctx.lineTo(padding.left + chartWidth, padding.top + chartHeight);
-      ctx.stroke();
-
-      ctx.fillStyle = '#334155';
-      ctx.font = '11px Arial';
-      ctx.textAlign = 'right';
-      for (let d = 1; d <= daysInMonth; d += Math.max(1, Math.floor(daysInMonth / 10))) {
-        const x = padding.left + (d - 1) * stepX;
-        ctx.fillText(String(d), x, padding.top + chartHeight + 14);
-      }
-
-      ctx.textAlign = 'right';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('0', padding.left - 6, padding.top + chartHeight);
-      ctx.fillText(String(maxY), padding.left - 6, padding.top);
-
-      systems.forEach((systemName, idx) => {
+      const labels = Array.from({ length: daysInMonth }, (_, i) => String(i + 1));
+      const datasets = systems.map((systemName, idx) => {
+        const arr = successPerDay.get(systemName) || [];
+        const data = Array.from({ length: daysInMonth }, (_, day) => arr[day] ?? 0);
         const color = SYSTEM_COLORS[idx % SYSTEM_COLORS.length];
-        const arr = successPerDay.get(systemName);
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        let first = true;
-        for (let day = 0; day < daysInMonth; day++) {
-          const val = arr[day] || 0;
-          const x = padding.left + day * stepX;
-          const y = padding.top + chartHeight - val * scaleY;
-          if (first) {
-            ctx.moveTo(x, y);
-            first = false;
-          } else {
-            ctx.lineTo(x, y);
-          }
-        }
-        ctx.stroke();
+        return {
+          label: systemName,
+          data,
+          borderColor: color,
+          backgroundColor: color + '20',
+          borderWidth: 2,
+          fill: false,
+          tension: 0.2,
+          pointRadius: 2,
+          pointHoverRadius: 5,
+        };
+      });
+
+      const annotationOpts = STATS_THRESHOLD > 0 ? {
+        annotations: {
+          thresholdLine: {
+            type: 'line',
+            yMin: STATS_THRESHOLD,
+            yMax: STATS_THRESHOLD,
+            borderColor: '#00ff00',
+            borderWidth: 2,
+          },
+          thresholdBox: {
+            type: 'box',
+            xMin: 0,
+            xMax: Math.max(0, daysInMonth - 1),
+            yMin: 0,
+            yMax: STATS_THRESHOLD,
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          },
+        },
+      } : {};
+
+      statsV2ChartInstance = new Chart(statsV2LineChart, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          aspectRatio: 2.5,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: {
+              position: 'bottom',
+              title: { display: false },
+              labels: {
+                usePointStyle: true,
+                pointStyle: 'line',
+                padding: 16,
+              },
+            },
+            tooltip: {
+              position: 'rightOffset',
+              callbacks: {
+                label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y} запр.`,
+              },
+            },
+            annotation: annotationOpts,
+          },
+          scales: {
+            x: {
+              title: { display: true, text: 'День месяца' },
+              grid: { display: true, drawBorder: true },
+            },
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: 'Успешных запросов' },
+              grid: { display: true },
+            },
+          },
+        },
       });
 
       return systems;
@@ -1410,24 +1434,7 @@
         monthStats = filteredStats;
       }
 
-      const systems = drawLineChartStatsV2(statsV2LineChart, successPerDay, daysInMonth) || [];
-
-      statsV2ChartLegend.innerHTML = '';
-      systems.forEach((systemName, idx) => {
-        const wrap = document.createElement('div');
-        wrap.style.display = 'inline-flex';
-        wrap.style.alignItems = 'center';
-        wrap.style.gap = '6px';
-        const sw = document.createElement('span');
-        sw.className = 'swatch';
-        sw.style.background = SYSTEM_COLORS[idx % SYSTEM_COLORS.length];
-        const label = document.createElement('span');
-        label.className = 'muted';
-        label.textContent = systemName;
-        wrap.appendChild(sw);
-        wrap.appendChild(label);
-        statsV2ChartLegend.appendChild(wrap);
-      });
+      const systems = initStatsV2Chart(successPerDay, daysInMonth) || [];
 
       statsV2SystemsInfo.innerHTML = '';
       for (const systemName of systems) {
