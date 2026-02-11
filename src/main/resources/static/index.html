@@ -502,7 +502,11 @@
   <div class="modal-overlay hidden" id="statsV2Modal">
     <div class="modal-content" style="max-width: 1100px; width: 95%;">
       <div class="modal-header">
-        <h2 id="statsV2ModalTitle">Статистика (v2) за месяц</h2>
+        <div class="controls" style="flex: 1; gap: 10px;">
+          <button type="button" id="statsV2PrevMonth" aria-label="Предыдущий месяц">◀</button>
+          <h2 id="statsV2ModalTitle" style="margin: 0;">Статистика (v2) за месяц</h2>
+          <button type="button" id="statsV2NextMonth" aria-label="Следующий месяц">▶</button>
+        </div>
         <button class="modal-close" id="closeStatsV2Modal" aria-label="Закрыть">×</button>
       </div>
       <div class="modal-body" id="statsV2ModalBody" style="flex-direction: column; gap: 24px;">
@@ -548,6 +552,8 @@
     const statsV2LineChart = document.getElementById('statsV2LineChart');
     const statsV2ChartLegend = document.getElementById('statsV2ChartLegend');
     const statsV2SystemsInfo = document.getElementById('statsV2SystemsInfo');
+    const statsV2PrevMonth = document.getElementById('statsV2PrevMonth');
+    const statsV2NextMonth = document.getElementById('statsV2NextMonth');
 
     let successStatuses = new Set(['0']);
     let criteria = [];
@@ -1376,7 +1382,7 @@
       return systems;
     }
 
-    function openStatsV2Modal() {
+    function renderStatsV2Content() {
       const monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
       const filterSystem = systemFilterSelect.value;
 
@@ -1463,7 +1469,10 @@
       if (systems.length === 0) {
         statsV2SystemsInfo.innerHTML = '<div class="muted">Нет данных за выбранный месяц</div>';
       }
+    }
 
+    function openStatsV2Modal() {
+      renderStatsV2Content();
       statsV2Modal.classList.remove('hidden');
     }
 
@@ -1475,6 +1484,14 @@
     closeStatsV2Modal.addEventListener('click', closeStatsV2ModalHandler);
     statsV2Modal.addEventListener('click', (e) => {
       if (e.target === statsV2Modal) closeStatsV2ModalHandler();
+    });
+    statsV2PrevMonth.addEventListener('click', () => {
+      changeMonth(-1);
+      renderStatsV2Content();
+    });
+    statsV2NextMonth.addEventListener('click', () => {
+      changeMonth(1);
+      renderStatsV2Content();
     });
 
     // Проверка систем
