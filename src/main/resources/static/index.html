@@ -557,6 +557,11 @@
     const statsV2NextMonth = document.getElementById('statsV2NextMonth');
 
     let successStatuses = new Set(['0']);
+    /** Успешность операции: при наличии флага success — по нему, иначе по successStatuses. */
+    function isStatSuccess(stat) {
+      if (stat && typeof stat.success === 'boolean') return stat.success;
+      return successStatuses.has(String(stat?.status ?? ''));
+    }
     let criteria = [];
     let dayToRecord = new Map();
     let selectedCell = null;
@@ -607,9 +612,8 @@
           continue;
         }
 
-        // Проверяем, является ли статус успешным (0 = успешный)
-        const statusStr = String(item.status);
-        const isSuccess = successStatuses.has(statusStr);
+        // Успешность по флагу success из БД, иначе по successStatuses
+        const isSuccess = isStatSuccess(item);
 
         if (!isSuccess) {
           // Учитываем count из таблицы SystemStatus
@@ -787,7 +791,7 @@
         top.className = 'badge';
         const dot = document.createElement('span');
         dot.className = 'swatch';
-        const ok = successStatuses.has(String(s.status));
+        const ok = isStatSuccess(s);
         dot.style.background = ok ? '#22c55e' : '#ef4444';
         const name = document.createElement('span');
         name.textContent = s.system || 'Неизвестно';
@@ -801,7 +805,9 @@
         if (countValue > 1) top.appendChild(count);
         const status = document.createElement('span');
         status.className = 'muted';
-        status.textContent = `статус: ${s.status || 'неизвестно'}`;
+        const httpPart = s.httpCode != null ? `HTTP: ${s.httpCode}` : '';
+        const codePart = s.status != null && String(s.status) !== '' ? `код: ${s.status}` : '';
+        status.textContent = [httpPart, codePart].filter(Boolean).join(' · ') || '—';
         card.appendChild(top);
         card.appendChild(status);
         systemsEl.appendChild(card);
@@ -1053,8 +1059,7 @@
 
         for (const stat of rec.stat) {
           const systemName = stat.system || 'Неизвестно';
-          const statusStr = String(stat.status);
-          const isSuccess = successStatuses.has(statusStr);
+          const isSuccess = isStatSuccess(stat);
           const count = (stat.count && typeof stat.count === 'number') ? stat.count : 1;
 
           if (!stats.has(systemName)) {
@@ -1084,8 +1089,7 @@
       let failed = 0;
       for (const item of dayItem.stat) {
         if (item.system === systemName) {
-          const statusStr = String(item.status);
-          const isSuccess = successStatuses.has(statusStr);
+          const isSuccess = isStatSuccess(item);
           if (!isSuccess) {
             const itemCount = (item.count && typeof item.count === 'number') ? item.count : 1;
             failed += itemCount;
@@ -1240,7 +1244,7 @@
 
         for (const s of rec.stat) {
           const systemName = s.system || 'Неизвестно';
-          const isSuccess = successStatuses.has(String(s.status));
+          const isSuccess = isStatSuccess(s);
           const count = (s.count && typeof s.count === 'number') ? s.count : 1;
 
           if (!result.has(systemName)) {
@@ -1279,7 +1283,7 @@
           for (const s of rec.stat) {
             if (s.system !== systemName) continue;
             const count = (s.count && typeof s.count === 'number') ? s.count : 1;
-            if (successStatuses.has(String(s.status))) {
+            if (isStatSuccess(s)) {
               successCount += count;
             } else {
               failedCount += count;

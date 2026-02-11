@@ -11,7 +11,8 @@ public class SystemStatus {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 10)
+    /** Код статуса из PingResponse.statusCode */
+    @Column(nullable = false, length = 50)
     private String status;
 
     @Column(name = "system_name", nullable = false, length = 100)
@@ -23,6 +24,14 @@ public class SystemStatus {
     @Column(nullable = false)
     private Integer count;
 
+    /** HTTP-код из PingResponse.httpCode */
+    @Column(name = "http_code")
+    private Integer httpCode;
+
+    /** Флаг успешности операции из PingResponse.success */
+    @Column(name = "success")
+    private Boolean success;
+
     public SystemStatus() {}
 
     public SystemStatus(String status, String systemName, LocalDate date, Integer count) {
@@ -30,6 +39,15 @@ public class SystemStatus {
         this.systemName = systemName;
         this.date = date;
         this.count = count;
+    }
+
+    public SystemStatus(String status, String systemName, LocalDate date, Integer count, Integer httpCode, Boolean success) {
+        this.status = status;
+        this.systemName = systemName;
+        this.date = date;
+        this.count = count;
+        this.httpCode = httpCode;
+        this.success = success;
     }
 
     public Long getId() {
@@ -70,6 +88,22 @@ public class SystemStatus {
 
     public void setCount(Integer count) {
         this.count = count;
+    }
+
+    public Integer getHttpCode() {
+        return httpCode;
+    }
+
+    public void setHttpCode(Integer httpCode) {
+        this.httpCode = httpCode;
+    }
+
+    public Boolean getSuccess() {
+        return success;
+    }
+
+    public void setSuccess(Boolean success) {
+        this.success = success;
     }
 }
 

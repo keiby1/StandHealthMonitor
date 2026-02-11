@@ -51,6 +51,8 @@ public class DataResponse {
         private String system;
         private String status;
         private Integer count;
+        private Integer httpCode;
+        private Boolean success;
 
         public SystemStat() {}
 
@@ -64,6 +66,14 @@ public class DataResponse {
             this.system = system;
             this.status = status;
             this.count = count;
+        }
+
+        public SystemStat(String system, String status, Integer count, Integer httpCode, Boolean success) {
+            this.system = system;
+            this.status = status;
+            this.count = count;
+            this.httpCode = httpCode;
+            this.success = success;
         }
 
         public String getSystem() {
@@ -88,6 +98,22 @@ public class DataResponse {
 
         public void setCount(Integer count) {
             this.count = count;
+        }
+
+        public Integer getHttpCode() {
+            return httpCode;
+        }
+
+        public void setHttpCode(Integer httpCode) {
+            this.httpCode = httpCode;
+        }
+
+        public Boolean getSuccess() {
+            return success;
+        }
+
+        public void setSuccess(Boolean success) {
+            this.success = success;
         }
     }
 }

@@ -178,14 +178,17 @@ public class PeriodicTaskService {
                 .orElse(null);
 
         if (existingStatus != null) {
-            // Запись существует - увеличиваем счетчик
+            // Запись существует - увеличиваем счетчик и обновляем httpCode/success
             existingStatus.setCount(existingStatus.getCount() + 1);
+            existingStatus.setHttpCode(rs.getHttpCode());
+            existingStatus.setSuccess(rs.isSuccess());
             systemStatusRepository.save(existingStatus);
             System.out.println("Обновлена запись: система=" + systemName + ", статус=" + status + 
                              ", новый count=" + existingStatus.getCount());
         } else {
-            // Записи нет - создаем новую со значением count=1
-            SystemStatus newStatus = new SystemStatus(status, systemName, today, 1);
+            // Записи нет - создаем новую со значением count=1 и полями из PingResponse
+            SystemStatus newStatus = new SystemStatus(status, systemName, today, 1,
+                    rs.getHttpCode(), rs.isSuccess());
             systemStatusRepository.save(newStatus);
             System.out.println("Создана новая запись: система=" + systemName + ", статус=" + status + 
                              ", count=1");

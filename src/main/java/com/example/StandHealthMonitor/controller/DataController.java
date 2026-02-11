@@ -62,12 +62,14 @@ public class DataController {
                     LocalDate date = entry.getKey();
                     String dateStr = date.format(DATE_FORMATTER);
                     
-                    // Передаем записи с count вместо размножения
+                    // Передаем записи с count, httpCode и success
                     List<DataResponse.SystemStat> stats = entry.getValue().stream()
-                            .map(status -> new DataResponse.SystemStat(
-                                    status.getSystemName(), 
-                                    status.getStatus(), 
-                                    status.getCount()))
+                            .map(s -> new DataResponse.SystemStat(
+                                    s.getSystemName(), 
+                                    s.getStatus(), 
+                                    s.getCount(),
+                                    s.getHttpCode(),
+                                    s.getSuccess()))
                             .collect(Collectors.toList());
                     
                     return new DataResponse.DayData(dateStr, stats);
