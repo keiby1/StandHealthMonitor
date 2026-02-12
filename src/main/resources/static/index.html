@@ -257,6 +257,95 @@
       overflow-y: auto;
     }
 
+    /* Боковая панель статистики за день */
+    .day-stats-sidebar {
+      flex: 1;
+      min-width: 400px;
+      max-width: 600px;
+      padding: 20px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-card);
+      position: sticky;
+      top: 100px;
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
+    }
+    .day-stats-sections-container {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+    .day-stats-section {
+      flex: 1;
+      min-width: 0;
+    }
+    .day-stats-section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+    .day-stats-numbers {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .day-stats-number-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+    .day-stats-number-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .day-stats-number-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .day-stats-number-value.success {
+      color: #10b981;
+    }
+    .day-stats-number-value.failed {
+      color: #ef4444;
+    }
+    .day-stats-failed-systems {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .day-stats-failed-system {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+    .day-stats-failed-system-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    .day-stats-failed-system-count {
+      font-size: 13px;
+      font-weight: 600;
+      color: #ef4444;
+    }
+    .day-stats-empty {
+      color: var(--text-muted);
+      font-size: 13px;
+      text-align: center;
+      padding: 20px;
+    }
+
     /* Модальные окна */
     .modal-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -385,6 +474,9 @@
       .main-container { flex-direction: column; }
       .stats-sidebar { width: 100%; min-width: unset; position: static; max-height: none; top: auto; }
       .stats-list { grid-template-columns: repeat(2, 1fr); }
+      .day-stats-sidebar { width: 100%; min-width: unset; position: static; max-height: none; top: auto; }
+      .wrap > div[style*="display: flex"] { flex-direction: column; }
+      .day-stats-sections-container { flex-direction: column; }
     }
     @media (max-width: 768px) {
       .stats-list { grid-template-columns: 1fr; }
@@ -449,9 +541,15 @@
           </div>
         </div>
         <div class="legend" id="legend"></div>
-        <div class="calendar-wrapper">
-          <div class="calendar" id="weekdayHeader" aria-hidden="true"></div>
-          <div class="calendar" id="calendar" role="grid" aria-label="Календарь доступности"></div>
+        <div style="display: flex; gap: 24px; align-items: flex-start;">
+          <div class="calendar-wrapper">
+            <div class="calendar" id="weekdayHeader" aria-hidden="true"></div>
+            <div class="calendar" id="calendar" role="grid" aria-label="Календарь доступности"></div>
+          </div>
+          <div class="day-stats-sidebar hidden" id="dayStatsSidebar">
+            <h2 id="dayStatsTitle" style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: var(--text-primary);">Статистика за день</h2>
+            <div id="dayStatsContent"></div>
+          </div>
         </div>
         <div class="toolbar-row">
           <span class="notice">Кликните по дню для деталей по системам</span>
@@ -531,6 +629,9 @@
     const detailsTitleEl = document.getElementById('detailsTitle');
     const systemsEl = document.getElementById('systems');
     const rangeEl = document.getElementById('range');
+    const dayStatsSidebar = document.getElementById('dayStatsSidebar');
+    const dayStatsTitle = document.getElementById('dayStatsTitle');
+    const dayStatsContent = document.getElementById('dayStatsContent');
     const prevMonthBtn = document.getElementById('prevMonth');
     const nextMonthBtn = document.getElementById('nextMonth');
     const monthSelect = document.getElementById('monthSelect');
@@ -751,6 +852,192 @@
       }
       selectedCell = null;
       detailsEl.classList.add('hidden');
+      dayStatsSidebar.classList.add('hidden');
+    }
+
+    /**
+     * Вычисляет статистику за день: успешные, неуспешные и всего операций
+     * @param {Object} dayItem - запись за день
+     * @returns {Object} объект с полями {success: number, failed: number, total: number}
+     */
+    function calculateDayStats(dayItem) {
+      if (!dayItem || !Array.isArray(dayItem.stat)) {
+        return { success: 0, failed: 0, total: 0 };
+      }
+
+      let success = 0;
+      let failed = 0;
+
+      for (const item of dayItem.stat) {
+        const itemCount = (item.count && typeof item.count === 'number') ? item.count : 1;
+        const isSuccess = isStatSuccess(item);
+
+        if (isSuccess) {
+          success += itemCount;
+        } else {
+          failed += itemCount;
+        }
+      }
+
+      const total = success + failed;
+      return { success, failed, total };
+    }
+
+    /**
+     * Получает список систем с неуспешными проверками за день
+     * Группирует по названию системы, суммируя количество ошибок
+     * @param {Object} dayItem - запись за день
+     * @returns {Array} массив объектов {system: string, count: number}
+     */
+    function getFailedSystems(dayItem) {
+      if (!dayItem || !Array.isArray(dayItem.stat)) {
+        return [];
+      }
+
+      const failedSystemsMap = new Map();
+
+      for (const item of dayItem.stat) {
+        const isSuccess = isStatSuccess(item);
+        if (!isSuccess) {
+          const systemName = item.system || 'Неизвестно';
+          const itemCount = (item.count && typeof item.count === 'number') ? item.count : 1;
+
+          // Группируем только по названию системы, суммируя количество ошибок
+          if (failedSystemsMap.has(systemName)) {
+            failedSystemsMap.get(systemName).count += itemCount;
+          } else {
+            failedSystemsMap.set(systemName, {
+              system: systemName,
+              count: itemCount
+            });
+          }
+        }
+      }
+
+      return Array.from(failedSystemsMap.values());
+    }
+
+    /**
+     * Отображает статистику за день в боковой панели
+     * @param {string} dateStr - дата в формате DD.MM.YYYY
+     * @param {Object} dayItem - запись за день
+     */
+    function renderDayStats(dateStr, dayItem) {
+      if (!dayItem) {
+        dayStatsTitle.textContent = `Статистика за ${dateStr}`;
+        dayStatsContent.innerHTML = '<div class="day-stats-empty">Данные отсутствуют</div>';
+        dayStatsSidebar.classList.remove('hidden');
+        return;
+      }
+
+      dayStatsTitle.textContent = `Статистика за ${dateStr}`;
+      dayStatsContent.innerHTML = '';
+
+      // Контейнер для секций в одну строку
+      const sectionsContainer = document.createElement('div');
+      sectionsContainer.className = 'day-stats-sections-container';
+
+      // Вычисляем статистику
+      const stats = calculateDayStats(dayItem);
+      const successPercent = stats.total > 0 ? ((stats.success / stats.total) * 100).toFixed(1) : '0';
+      const failedPercent = stats.total > 0 ? ((stats.failed / stats.total) * 100).toFixed(1) : '0';
+
+      // Секция с числами
+      const numbersSection = document.createElement('div');
+      numbersSection.className = 'day-stats-section';
+
+      const numbersTitle = document.createElement('div');
+      numbersTitle.className = 'day-stats-section-title';
+      numbersTitle.textContent = 'Операции';
+      numbersSection.appendChild(numbersTitle);
+
+      const numbersContainer = document.createElement('div');
+      numbersContainer.className = 'day-stats-numbers';
+
+      // Успешные
+      const successItem = document.createElement('div');
+      successItem.className = 'day-stats-number-item';
+      const successLabel = document.createElement('span');
+      successLabel.className = 'day-stats-number-label';
+      successLabel.textContent = 'Успешные';
+      const successValue = document.createElement('span');
+      successValue.className = 'day-stats-number-value success';
+      successValue.textContent = `${stats.success} (${successPercent}%)`;
+      successItem.appendChild(successLabel);
+      successItem.appendChild(successValue);
+      numbersContainer.appendChild(successItem);
+
+      // Неуспешные
+      const failedItem = document.createElement('div');
+      failedItem.className = 'day-stats-number-item';
+      const failedLabel = document.createElement('span');
+      failedLabel.className = 'day-stats-number-label';
+      failedLabel.textContent = 'Неуспешные';
+      const failedValue = document.createElement('span');
+      failedValue.className = 'day-stats-number-value failed';
+      failedValue.textContent = `${stats.failed} (${failedPercent}%)`;
+      failedItem.appendChild(failedLabel);
+      failedItem.appendChild(failedValue);
+      numbersContainer.appendChild(failedItem);
+
+      // Всего
+      const totalItem = document.createElement('div');
+      totalItem.className = 'day-stats-number-item';
+      const totalLabel = document.createElement('span');
+      totalLabel.className = 'day-stats-number-label';
+      totalLabel.textContent = 'Всего';
+      const totalValue = document.createElement('span');
+      totalValue.className = 'day-stats-number-value';
+      totalValue.textContent = String(stats.total);
+      totalItem.appendChild(totalLabel);
+      totalItem.appendChild(totalValue);
+      numbersContainer.appendChild(totalItem);
+
+      numbersSection.appendChild(numbersContainer);
+      sectionsContainer.appendChild(numbersSection);
+
+      // Секция с системами с ошибками
+      const failedSystems = getFailedSystems(dayItem);
+      const failedSection = document.createElement('div');
+      failedSection.className = 'day-stats-section';
+
+      const failedTitle = document.createElement('div');
+      failedTitle.className = 'day-stats-section-title';
+      failedTitle.textContent = `Системы с ошибками${failedSystems.length > 0 ? ` (${failedSystems.length})` : ''}`;
+      failedSection.appendChild(failedTitle);
+
+      const failedContainer = document.createElement('div');
+      failedContainer.className = 'day-stats-failed-systems';
+
+      if (failedSystems.length > 0) {
+        for (const failedSystem of failedSystems) {
+          const systemEl = document.createElement('div');
+          systemEl.className = 'day-stats-failed-system';
+
+          const systemNameEl = document.createElement('span');
+          systemNameEl.className = 'day-stats-failed-system-name';
+          systemNameEl.textContent = failedSystem.system;
+          systemEl.appendChild(systemNameEl);
+
+          const countEl = document.createElement('span');
+          countEl.className = 'day-stats-failed-system-count';
+          countEl.textContent = String(failedSystem.count);
+          systemEl.appendChild(countEl);
+
+          failedContainer.appendChild(systemEl);
+        }
+      } else {
+        const noErrorsText = document.createElement('div');
+        noErrorsText.className = 'day-stats-empty';
+        noErrorsText.textContent = 'Ошибок не зафиксировано';
+        failedContainer.appendChild(noErrorsText);
+      }
+
+      failedSection.appendChild(failedContainer);
+      sectionsContainer.appendChild(failedSection);
+      dayStatsContent.appendChild(sectionsContainer);
+
+      dayStatsSidebar.classList.remove('hidden');
     }
 
     function onDayClick(dateStr, cell) {
@@ -765,6 +1052,10 @@
       const rec = dayToRecord.get(dateStr);
       detailsTitleEl.textContent = `Детали за ${dateStr}`;
       systemsEl.innerHTML = '';
+      
+      // Отображаем статистику в боковой панели
+      renderDayStats(dateStr, rec);
+
       if (!rec) {
         detailsEl.classList.remove('hidden');
         systemsEl.innerHTML = '<span class="muted">Данные отсутствуют</span>';
