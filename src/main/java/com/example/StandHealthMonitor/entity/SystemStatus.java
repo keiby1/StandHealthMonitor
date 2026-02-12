@@ -5,7 +5,7 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "system_statuses", 
-       uniqueConstraints = @UniqueConstraint(columnNames = {"date", "system_name", "status"}))
+       uniqueConstraints = @UniqueConstraint(columnNames = {"date", "system_name", "status", "http_code"}))
 public class SystemStatus {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

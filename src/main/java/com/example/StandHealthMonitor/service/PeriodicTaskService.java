@@ -1,7 +1,6 @@
 package com.example.StandHealthMonitor.service;
 
 import com.example.StandHealthMonitor.dto.PingResponse;
-import com.example.StandHealthMonitor.dto.RsStatObj;
 import com.example.StandHealthMonitor.entity.SystemStatus;
 import com.example.StandHealthMonitor.repository.SystemStatusRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -154,8 +153,8 @@ public class PeriodicTaskService {
      * Обновляет или создает запись о статусе системы в БД.
      * 
      * Логика:
-     * 1. Извлекает данные из RsStatObj (система и статус)
-     * 2. Проверяет наличие записи за сегодня по данной системе и статусу
+     * 1. Извлекает данные из PingResponse (система, статус и HTTP-код)
+     * 2. Проверяет наличие записи за сегодня по данной системе, статусу и HTTP-коду
      * 3. Если запись существует - увеличивает счетчик на 1
      * 4. Если записи нет - создает новую со значением count=1
      * 
@@ -164,34 +163,34 @@ public class PeriodicTaskService {
     @Transactional
     public void updateOrCreateSystemStatus(PingResponse rs) {
         if (rs == null || rs.getSystemName() == null || rs.getSystemName().trim().isEmpty()) {
-            System.err.println("RsStatObj содержит некорректные данные, пропускаем сохранение");
+            System.err.println("PingResponse содержит некорректные данные, пропускаем сохранение");
             return;
         }
 
         LocalDate today = LocalDate.now();
         String systemName = rs.getSystemName().trim();
         String status = String.valueOf(rs.getStatusCode()); // Преобразуем int в String
+        Integer httpCode = rs.getHttpCode();
 
-        // Ищем существующую запись за сегодня
+        // Ищем существующую запись за сегодня с учетом HTTP-кода
         SystemStatus existingStatus = systemStatusRepository
-                .findByDateAndSystemNameAndStatus(today, systemName, status)
+                .findByDateAndSystemNameAndStatusAndHttpCode(today, systemName, status, httpCode)
                 .orElse(null);
 
         if (existingStatus != null) {
-            // Запись существует - увеличиваем счетчик и обновляем httpCode/success
+            // Запись существует - увеличиваем счетчик и обновляем success
             existingStatus.setCount(existingStatus.getCount() + 1);
-            existingStatus.setHttpCode(rs.getHttpCode());
             existingStatus.setSuccess(rs.isSuccess());
             systemStatusRepository.save(existingStatus);
             System.out.println("Обновлена запись: система=" + systemName + ", статус=" + status + 
-                             ", новый count=" + existingStatus.getCount());
+                             ", httpCode=" + httpCode + ", новый count=" + existingStatus.getCount());
         } else {
             // Записи нет - создаем новую со значением count=1 и полями из PingResponse
             SystemStatus newStatus = new SystemStatus(status, systemName, today, 1,
                     rs.getHttpCode(), rs.isSuccess());
             systemStatusRepository.save(newStatus);
             System.out.println("Создана новая запись: система=" + systemName + ", статус=" + status + 
-                             ", count=1");
+                             ", httpCode=" + httpCode + ", count=1");
         }
     }
 }

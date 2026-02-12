@@ -21,5 +21,11 @@ public interface SystemStatusRepository extends JpaRepository<SystemStatus, Long
      * Используется для проверки существования записи перед обновлением счетчика.
      */
     Optional<SystemStatus> findByDateAndSystemNameAndStatus(LocalDate date, String systemName, String status);
+    
+    /**
+     * Находит запись по дате, названию системы, статусу и HTTP-коду.
+     * Используется для проверки существования записи перед обновлением счетчика.
+     */
+    Optional<SystemStatus> findByDateAndSystemNameAndStatusAndHttpCode(LocalDate date, String systemName, String status, Integer httpCode);
 }
 
