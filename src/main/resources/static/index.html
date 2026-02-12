@@ -928,22 +928,30 @@
      * @param {Object} dayItem - запись за день
      */
     function renderDayStats(dateStr, dayItem) {
+      const filterSystem = systemFilterSelect.value;
       if (!dayItem) {
-        dayStatsTitle.textContent = `Статистика за ${dateStr}`;
+        dayStatsTitle.textContent = filterSystem && filterSystem !== 'ALL' ? `Статистика за ${dateStr} — ${filterSystem}` : `Статистика за ${dateStr}`;
         dayStatsContent.innerHTML = '<div class="day-stats-empty">Данные отсутствуют</div>';
         dayStatsSidebar.classList.remove('hidden');
         return;
       }
 
-      dayStatsTitle.textContent = `Статистика за ${dateStr}`;
+      // Учитываем фильтр по системе: считаем статистику только по выбранной системе
+      let statsDayItem = dayItem;
+      if (filterSystem && filterSystem !== 'ALL' && Array.isArray(dayItem.stat)) {
+        const filteredStat = dayItem.stat.filter(s => s.system === filterSystem);
+        statsDayItem = { ...dayItem, stat: filteredStat };
+      }
+
+      dayStatsTitle.textContent = filterSystem && filterSystem !== 'ALL' ? `Статистика за ${dateStr} — ${filterSystem}` : `Статистика за ${dateStr}`;
       dayStatsContent.innerHTML = '';
 
       // Контейнер для секций в одну строку
       const sectionsContainer = document.createElement('div');
       sectionsContainer.className = 'day-stats-sections-container';
 
-      // Вычисляем статистику
-      const stats = calculateDayStats(dayItem);
+      // Вычисляем статистику с учётом фильтра
+      const stats = calculateDayStats(statsDayItem);
       const successPercent = stats.total > 0 ? ((stats.success / stats.total) * 100).toFixed(1) : '0';
       const failedPercent = stats.total > 0 ? ((stats.failed / stats.total) * 100).toFixed(1) : '0';
 
@@ -1001,8 +1009,8 @@
       numbersSection.appendChild(numbersContainer);
       sectionsContainer.appendChild(numbersSection);
 
-      // Секция с системами с ошибками
-      const failedSystems = getFailedSystems(dayItem);
+      // Секция с системами с ошибками (с учётом фильтра)
+      const failedSystems = getFailedSystems(statsDayItem);
       const failedSection = document.createElement('div');
       failedSection.className = 'day-stats-section';
 
