@@ -398,7 +398,9 @@
     }
     .ping-group-header:hover { background-color: var(--bg-secondary); border-color: var(--border-hover); }
     .ping-group-icon { font-size: 12px; will-change: transform; transition: transform 0.2s ease; color: var(--text-muted); }
-    .ping-group.expanded .ping-group-icon { transform: rotate(90deg); }
+    .ping-group.expanded .ping-group-icon { transform: rotate(90deg); color: rgba(255,255,255,0.9); }
+    .ping-group.expanded .ping-group-header { background-color: #8b5cf6; border-color: #7c3aed; color: #fff; }
+    .ping-group.expanded .ping-group-header:hover { background-color: #7c3aed; border-color: #6d28d9; }
     .ping-group-items { display: none; flex-direction: column; gap: 10px; margin-top: 10px; padding-left: 12px; border-left: 2px solid #8b5cf6; }
     .ping-group.expanded .ping-group-items { display: flex; }
     .ping-system-item {
@@ -2116,13 +2118,6 @@
         statusRow.className = 'ping-result-row';
         statusRow.innerHTML = `<span class="ping-result-label">Статус код:</span> <span>${result.statusCode}</span>`;
         details.appendChild(statusRow);
-      }
-
-      if (result.message) {
-        const messageRow = document.createElement('div');
-        messageRow.className = 'ping-result-row';
-        messageRow.innerHTML = `<span class="ping-result-label">Сообщение:</span> <span>${result.message}</span>`;
-        details.appendChild(messageRow);
       }
 
       pingResult.innerHTML = '';
