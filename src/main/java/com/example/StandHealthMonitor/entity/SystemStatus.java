@@ -1,5 +1,7 @@
 package com.example.StandHealthMonitor.entity;
 
+import org.hibernate.annotations.GenericGenerator;
+
 import javax.persistence.*;
 import java.time.LocalDate;
 
@@ -8,7 +10,9 @@ import java.time.LocalDate;
        uniqueConstraints = @UniqueConstraint(columnNames = {"date", "system_name", "status", "http_code"}))
 public class SystemStatus {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(generator = "increment")
+    @GenericGenerator(name="increment", strategy = "increment")
+    @Column(name = "id", length = 6, nullable = false)
     private Long id;
 
     /** Код статуса из PingResponse.statusCode */
