@@ -1985,23 +1985,83 @@
       }
     }
 
+    /**
+     * Форматирует JSON-строку с отступами без разбора через JSON.parse,
+     * чтобы длинные целые (вне Number.MAX_SAFE_INTEGER) не теряли точность.
+     */
+    function prettyPrintJsonString(jsonStr) {
+      const tab = '  ';
+      let out = '';
+      let indent = 0;
+      let i = 0;
+      const len = jsonStr.length;
+      while (i < len) {
+        const c = jsonStr[i];
+        if (c === '"') {
+          out += c;
+          i++;
+          while (i < len) {
+            const s = jsonStr[i];
+            out += s;
+            if (s === '\\' && i + 1 < len) {
+              i++;
+              out += jsonStr[i];
+              i++;
+              continue;
+            }
+            if (s === '"') {
+              i++;
+              break;
+            }
+            i++;
+          }
+          continue;
+        }
+        if (c === '{' || c === '[') {
+          out += c + '\n' + tab.repeat(++indent);
+          i++;
+          continue;
+        }
+        if (c === '}' || c === ']') {
+          indent--;
+          out += '\n' + tab.repeat(indent) + c;
+          i++;
+          continue;
+        }
+        if (c === ',') {
+          out += c + '\n' + tab.repeat(indent);
+          i++;
+          continue;
+        }
+        if (c === ':') {
+          out += c + ' ';
+          i++;
+          continue;
+        }
+        out += c;
+        i++;
+      }
+      return out;
+    }
+
     function formatBody(content) {
       if (!content || content.trim() === '') {
         return '(пусто)';
       }
 
-      // Пытаемся определить, является ли содержимое JSON
-      try {
-        const parsed = JSON.parse(content);
-        return JSON.stringify(parsed, null, 2);
-      } catch (e) {
-        // Если не JSON, пытаемся форматировать как XML
-        if (content.trim().startsWith('<')) {
-          return formatXML(content);
+      const trimmed = content.trim();
+      // JSON: форматируем по строке, не парсим — сохраняем длинные числа
+      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        try {
+          return prettyPrintJsonString(trimmed);
+        } catch (e) {
+          return content;
         }
-        // Иначе возвращаем как есть
-        return content;
       }
+      if (trimmed.startsWith('<')) {
+        return formatXML(content);
+      }
+      return content;
     }
 
     function formatXML(xml) {

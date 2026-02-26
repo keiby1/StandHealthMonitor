@@ -24,7 +24,7 @@ public class A5 implements PeriodicTask {
 
         String rq1 = "{\"Rq\":\"123\"}";
         String rs1 = "{\"Rs\":\"qwe\"}";
-        String rq2 = "{\"Rs\":\"213543605860948796578\"}";
+        String rq2 = "{\"Rs\":12345678912345678911234567891234567891}";
         String rs2 = "{\"Rs\":\"fksdalfbksabf\"}";
 
 
