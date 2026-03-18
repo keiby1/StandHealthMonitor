@@ -19,7 +19,10 @@ import java.util.List;
  */
 @Component
 public class A0 implements PeriodicTask {
-    
+
+    private static final long GOOD_THRESHOLD_MS = 500;
+    private static final long BAD_THRESHOLD_MS = 5000;
+
     @Override
     public PingResponse execute() {
         System.out.println("Пример периодической задачи выполнен");

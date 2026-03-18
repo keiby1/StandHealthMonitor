@@ -18,7 +18,12 @@ import java.util.List;
  */
 @Component
 public class A5 implements PeriodicTask {
-    
+
+    /** Время выполнения <= этого значения (мс) считается хорошим — в UI зелёный. */
+    private static final long GOOD_THRESHOLD_MS = 500;
+    /** Время выполнения >= этого значения (мс) считается плохим — в UI красный. */
+    private static final long BAD_THRESHOLD_MS = 5000;
+
     @Override
     public PingResponse execute() {
 

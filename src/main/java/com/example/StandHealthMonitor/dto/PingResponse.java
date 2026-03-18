@@ -13,6 +13,12 @@ public class PingResponse {
     private String message;
     private boolean success;
     private List<OperStatPbj> steps;
+    /** Время выполнения execute(), мс. */
+    private Long executionTimeMs;
+    /** Порог «хорошо»: время <= этого значения красится в зелёный. */
+    private Long goodThresholdMs;
+    /** Порог «плохо»: время >= этого значения красится в красный. */
+    private Long badThresholdMs;
 
     public PingResponse() {}
 
@@ -110,6 +116,30 @@ public class PingResponse {
 
     public void add(OperStatPbj step){
         this.steps.add(step);
+    }
+
+    public Long getExecutionTimeMs() {
+        return executionTimeMs;
+    }
+
+    public void setExecutionTimeMs(Long executionTimeMs) {
+        this.executionTimeMs = executionTimeMs;
+    }
+
+    public Long getGoodThresholdMs() {
+        return goodThresholdMs;
+    }
+
+    public void setGoodThresholdMs(Long goodThresholdMs) {
+        this.goodThresholdMs = goodThresholdMs;
+    }
+
+    public Long getBadThresholdMs() {
+        return badThresholdMs;
+    }
+
+    public void setBadThresholdMs(Long badThresholdMs) {
+        this.badThresholdMs = badThresholdMs;
     }
 }
 

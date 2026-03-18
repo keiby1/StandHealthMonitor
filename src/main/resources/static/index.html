@@ -432,6 +432,9 @@
     .ping-result-details { font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
     .ping-result-row { display: flex; gap: 8px; }
     .ping-result-label { font-weight: 500; }
+    .ping-result-time-good { color: #059669; font-weight: 600; }
+    .ping-result-time-warn { color: #d97706; font-weight: 600; }
+    .ping-result-time-bad { color: #dc2626; font-weight: 600; }
     .ping-result-steps { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,.1); }
     .ping-result-steps-title { font-weight: 600; margin-bottom: 8px; font-size: 13px; }
     .ping-result-steps-list { display: flex; flex-direction: column; gap: 6px; }
@@ -2179,6 +2182,24 @@
 
       const details = document.createElement('div');
       details.className = 'ping-result-details';
+
+      if (result.executionTimeMs != null) {
+        const timeRow = document.createElement('div');
+        timeRow.className = 'ping-result-row';
+        const timeLabel = document.createElement('span');
+        timeLabel.className = 'ping-result-label';
+        timeLabel.textContent = 'Время выполнения:';
+        const timeValue = document.createElement('span');
+        timeValue.textContent = `${result.executionTimeMs} мс`;
+        const good = result.goodThresholdMs != null && result.executionTimeMs <= result.goodThresholdMs;
+        const bad = result.badThresholdMs != null && result.executionTimeMs >= result.badThresholdMs;
+        if (good) timeValue.className = 'ping-result-time-good';
+        else if (bad) timeValue.className = 'ping-result-time-bad';
+        else if (result.goodThresholdMs != null || result.badThresholdMs != null) timeValue.className = 'ping-result-time-warn';
+        timeRow.appendChild(timeLabel);
+        timeRow.appendChild(timeValue);
+        details.appendChild(timeRow);
+      }
 
       if (result.fullSystemName) {
         const fullNameRow = document.createElement('div');
