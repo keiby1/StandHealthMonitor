@@ -1986,14 +1986,30 @@
     }
 
     /**
-     * Форматирует JSON-строку с отступами без разбора через JSON.parse,
-     * чтобы длинные целые (вне Number.MAX_SAFE_INTEGER) не теряли точность.
+     * Пропуск пробелов/переносов вне строки (для аккуратного вывода).
+     */
+    function skipJsonWhitespace(str, i) {
+      const len = str.length;
+      while (i < len) {
+        const c = str[i];
+        if (c === ' ' || c === '\t' || c === '\n' || c === '\r') {
+          i++;
+          continue;
+        }
+        break;
+      }
+      return i;
+    }
+
+    /**
+     * Форматирует JSON в стиле JSON.stringify(obj, null, 2) без разбора через
+     * JSON.parse — длинные целые не теряют точность, вывод структурированный.
      */
     function prettyPrintJsonString(jsonStr) {
       const tab = '  ';
       let out = '';
       let indent = 0;
-      let i = 0;
+      let i = skipJsonWhitespace(jsonStr, 0);
       const len = jsonStr.length;
       while (i < len) {
         const c = jsonStr[i];
@@ -2015,27 +2031,32 @@
             }
             i++;
           }
+          i = skipJsonWhitespace(jsonStr, i);
           continue;
         }
         if (c === '{' || c === '[') {
           out += c + '\n' + tab.repeat(++indent);
           i++;
+          i = skipJsonWhitespace(jsonStr, i);
           continue;
         }
         if (c === '}' || c === ']') {
           indent--;
           out += '\n' + tab.repeat(indent) + c;
           i++;
+          i = skipJsonWhitespace(jsonStr, i);
           continue;
         }
         if (c === ',') {
           out += c + '\n' + tab.repeat(indent);
           i++;
+          i = skipJsonWhitespace(jsonStr, i);
           continue;
         }
         if (c === ':') {
           out += c + ' ';
           i++;
+          i = skipJsonWhitespace(jsonStr, i);
           continue;
         }
         out += c;
@@ -2050,7 +2071,7 @@
       }
 
       const trimmed = content.trim();
-      // JSON: форматируем по строке, не парсим — сохраняем длинные числа
+      // JSON: структурированный вывод без parse — длинные числа сохраняются
       if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
         try {
           return prettyPrintJsonString(trimmed);
